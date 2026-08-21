@@ -1,9 +1,11 @@
 plugins {
     java
     checkstyle
+    jacoco
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.diffplug.spotless") version "8.10.0"
+    id("net.ltgt.errorprone") version "5.1.0"
 }
 
 group = "com.booking"
@@ -34,6 +36,10 @@ spotless {
     }
 }
 
+jacoco {
+    toolVersion = "0.8.15"
+}
+
 repositories {
     mavenCentral()
 }
@@ -62,6 +68,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    errorprone("com.google.errorprone:error_prone_core:2.50.0")
 }
 
 dependencyManagement {
@@ -76,6 +83,13 @@ tasks.withType<Test> {
 
 tasks.check {
     dependsOn(tasks.spotlessCheck)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        html.required = true
+    }
 }
 
 tasks.register<Exec>("installGitHooks") {
