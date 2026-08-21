@@ -77,3 +77,9 @@ tasks.withType<Test> {
 tasks.check {
     dependsOn(tasks.spotlessCheck)
 }
+
+tasks.register<Exec>("installGitHooks") {
+    group = "setup"
+    description = "Configures Git to use the repository hooks"
+    commandLine("git", "config", "--local", "core.hooksPath", ".githooks")
+}
