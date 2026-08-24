@@ -32,14 +32,9 @@ public class ResourceService {
     @Transactional
     public ResourceResponse createResource(String name, String description) {
         Resource resource = new Resource(name, description);
-        log.debug("Creating resource with name={}", name);
-        try {
-            resourceRepository.saveAndFlush(resource);
-            log.info("Resource created: publicId={}, name={}", resource.getPublicId(), name);
-            return ResourceMapper.toResponse(resource);
-        } catch (DataIntegrityViolationException e) {
-            throw new NameAlreadyTakenException(name, e);
-        }
+        persist(resource);
+        log.info("Resource created: publicId={}, name={}", resource.getPublicId(), name);
+        return ResourceMapper.toResponse(resource);
     }
 
     @Transactional(readOnly = true)
@@ -54,13 +49,9 @@ public class ResourceService {
         String oldName = resource.getName();
         resource.rename(name);
         resource.changeDescription(description);
-        try {
-            resourceRepository.saveAndFlush(resource);
-            log.info("Updated resource: publicId={}, oldName={}, newName={}", publicId, oldName, name);
-            return ResourceMapper.toResponse(resource);
-        } catch (DataIntegrityViolationException e) {
-            throw new NameAlreadyTakenException(name, e);
-        }
+        persist(resource);
+        log.info("Updated resource: publicId={}, oldName={}, newName={}", publicId, oldName, name);
+        return ResourceMapper.toResponse(resource);
     }
 
     @Transactional
@@ -88,5 +79,13 @@ public class ResourceService {
 
     private Resource requireResource(UUID publicId) {
         return resourceRepository.findByPublicId(publicId).orElseThrow(() -> new ResourceNotFoundException(publicId));
+    }
+
+    private void persist(Resource resource) {
+        try {
+            resourceRepository.saveAndFlush(resource);
+        } catch (DataIntegrityViolationException e) {
+            throw new NameAlreadyTakenException(resource.getName(), e);
+        }
     }
 }
