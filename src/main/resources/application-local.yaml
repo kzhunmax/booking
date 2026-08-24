@@ -6,6 +6,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+    open-in-view: false
   datasource:
     url: jdbc:postgresql://localhost:5432/booking
     username: postgres

@@ -1,6 +1,7 @@
 package com.booking.app.resource;
 
 import com.booking.app.resource.internal.domain.Resource;
+import com.booking.app.resource.internal.domain.ResourceStatus;
 import com.booking.app.resource.internal.exception.NameAlreadyTakenException;
 import com.booking.app.resource.internal.exception.ResourceNotFoundException;
 import com.booking.app.resource.internal.infrastructure.ResourceMapper;
@@ -10,6 +11,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,5 +50,10 @@ public class ResourceService {
         } catch (DataIntegrityViolationException e) {
             throw new NameAlreadyTakenException(normalizedName, e);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ResourceResponse> search(ResourceStatus status, Pageable pageable) {
+        return resourceRepository.findByStatus(status, pageable).map(resourceMapper::toResponse);
     }
 }
