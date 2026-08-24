@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ResourceRepository extends JpaRepository<Resource, Long> {
-    Optional<Resource> findByPublicId(UUID id);
+    Optional<Resource> findByPublicId(UUID publicId);
 
     Page<Resource> findByStatus(ResourceStatus status, Pageable pageable);
 }

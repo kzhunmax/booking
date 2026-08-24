@@ -25,6 +25,15 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problemDetail);
     }
 
+    @ExceptionHandler(InvalidStatusTransitionException.class)
+    public ResponseEntity<ProblemDetail> handleStatusTransition(InvalidStatusTransitionException ex) {
+        log.warn("Resource status transition failed: {}", ex.getMessage());
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage());
+        problemDetail.setTitle("Resource Status Invalid Transition");
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(problemDetail);
+    }
+
     @ExceptionHandler(NameAlreadyTakenException.class)
     public ResponseEntity<ProblemDetail> handleNameTaken(NameAlreadyTakenException ex) {
         log.warn("Resource name already taken: {}", ex.getMessage());

@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS resources
 
     CONSTRAINT pk_resources PRIMARY KEY (id),
 
-    CONSTRAINT uk_resources_public_id UNIQUE (public_id),
-    CONSTRAINT uk_resources_name UNIQUE (name)
+    CONSTRAINT uk_resources_public_id UNIQUE (public_id)
 );
+
+CREATE UNIQUE INDEX uk_resources_name_lower
+    ON resources (LOWER(name))
+    WHERE status <> 'ARCHIVED';
 

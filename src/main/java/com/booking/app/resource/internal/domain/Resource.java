@@ -2,6 +2,7 @@ package com.booking.app.resource.internal.domain;
 
 import com.booking.app.common.AuditInfo;
 import com.booking.app.common.Identifiable;
+import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.ResourceStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -34,28 +35,23 @@ public class Resource implements Identifiable {
     @Embedded
     private AuditInfo auditInfo;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 10000)
     private String description;
 
-    @Column(name = "status", nullable = false, columnDefinition = "varchar(50) default 'ACTIVE'")
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private ResourceStatus status = ResourceStatus.ACTIVE;
 
     protected Resource() {}
 
     public Resource(String name, String description) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name cannot be null or blank");
-        }
-        if (name.length() > 255) {
-            throw new IllegalArgumentException("Name cannot exceed 255 characters");
-        }
+        validateName(name);
         this.publicId = UUID.randomUUID();
         this.auditInfo = new AuditInfo();
-        this.name = name;
+        this.name = name.strip();
         this.description = description;
     }
 
@@ -76,16 +72,53 @@ public class Resource implements Identifiable {
         return name;
     }
 
+    public void rename(String name) {
+        validateName(name);
+        this.name = name.strip();
+    }
+
     public String getDescription() {
         return description;
+    }
+
+    public void changeDescription(String description) {
+        this.description = description;
     }
 
     public ResourceStatus getStatus() {
         return status;
     }
 
-    public void changeStatus(ResourceStatus newStatus) {
-        this.status = newStatus;
+    public void activate() {
+        verifyArchivedStatus();
+        this.status = ResourceStatus.ACTIVE;
+    }
+
+    public void deactivate() {
+        verifyArchivedStatus();
+        this.status = ResourceStatus.INACTIVE;
+    }
+
+    private void verifyArchivedStatus() {
+        if (this.status == ResourceStatus.ARCHIVED) {
+            throw new InvalidStatusTransitionException("Archived resources cannot be changed via status update");
+        }
+    }
+
+    public void archive() {
+        if (this.status == ResourceStatus.ARCHIVED) {
+            return;
+        }
+        this.status = ResourceStatus.ARCHIVED;
+    }
+
+    private void validateName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be null or blank");
+        }
+        if (name.length() > 255) {
+            throw new IllegalArgumentException("Name cannot exceed 255 characters");
+        }
     }
 
     @Override
