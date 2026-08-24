@@ -25,7 +25,11 @@
         <module name="MemberName"/>
         <module name="ParameterName"/>
         <module name="LocalVariableName"/>
-        <module name="ConstantName"/>
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$|^log$"/>
+            <message key="name.invalidPattern"
+                     value="Constant name ''{0}'' must match pattern ''{1}''."/>
+        </module>
 
         <!-- Imports -->
         <module name="AvoidStarImport"/>
@@ -34,7 +38,7 @@
         <module name="IllegalImport">
             <property name="illegalPkgs" value="sun, com.sun, jdk.internal"/>
         </module>
-        
+
         <!-- Common mistakes -->
         <module name="EqualsHashCode"/>
         <module name="StringLiteralEquality"/>
