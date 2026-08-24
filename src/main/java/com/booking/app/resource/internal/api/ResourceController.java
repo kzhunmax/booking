@@ -51,7 +51,8 @@ public class ResourceController {
     public Page<ResourceResponse> getResources(
             @RequestParam(required = false) ResourceStatus status,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return resourceService.findAll(status, pageable);
+        ResourceStatus filterStatus = (status != null) ? status : ResourceStatus.ACTIVE;
+        return resourceService.findAll(filterStatus, pageable);
     }
 
     @PutMapping("/{publicId}")

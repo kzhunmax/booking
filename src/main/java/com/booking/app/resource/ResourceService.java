@@ -39,8 +39,7 @@ public class ResourceService {
 
     @Transactional(readOnly = true)
     public Page<ResourceResponse> findAll(ResourceStatus status, Pageable pageable) {
-        ResourceStatus filterStatus = (status != null) ? status : ResourceStatus.ACTIVE;
-        return resourceRepository.findByStatus(filterStatus, pageable).map(ResourceMapper::toResponse);
+        return resourceRepository.findByStatus(status, pageable).map(ResourceMapper::toResponse);
     }
 
     @Transactional
@@ -85,7 +84,11 @@ public class ResourceService {
         try {
             resourceRepository.saveAndFlush(resource);
         } catch (DataIntegrityViolationException e) {
-            throw new NameAlreadyTakenException(resource.getName(), e);
+            String message = e.getMostSpecificCause().getMessage();
+            if (message != null && message.contains("uk_resources_name_lower")) {
+                throw new NameAlreadyTakenException(resource.getName(), e);
+            }
+            throw e;
         }
     }
 }
