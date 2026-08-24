@@ -1,9 +1,11 @@
 package com.booking.app.resource.internal.api;
 
-import com.booking.app.resource.ResourceRequest;
 import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceService;
-import com.booking.app.resource.internal.domain.ResourceStatus;
+import com.booking.app.resource.ResourceStatus;
+import com.booking.app.resource.internal.dto.CreateResourceRequest;
+import com.booking.app.resource.internal.dto.UpdateResourceRequest;
+import com.booking.app.resource.internal.dto.UpdateStatusRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.UUID;

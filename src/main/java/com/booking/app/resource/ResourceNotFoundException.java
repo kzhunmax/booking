@@ -1,4 +1,4 @@
-package com.booking.app.resource.internal.exception;
+package com.booking.app.resource;
 
 import java.util.UUID;
 

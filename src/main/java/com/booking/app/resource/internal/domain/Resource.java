@@ -2,6 +2,7 @@ package com.booking.app.resource.internal.domain;
 
 import com.booking.app.common.AuditInfo;
 import com.booking.app.common.Identifiable;
+import com.booking.app.resource.ResourceStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;

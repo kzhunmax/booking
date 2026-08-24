@@ -1,7 +1,7 @@
 package com.booking.app.resource.internal.infrastructure;
 
+import com.booking.app.resource.ResourceStatus;
 import com.booking.app.resource.internal.domain.Resource;
-import com.booking.app.resource.internal.domain.ResourceStatus;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;

@@ -1,9 +1,6 @@
 package com.booking.app.resource;
 
 import com.booking.app.resource.internal.domain.Resource;
-import com.booking.app.resource.internal.domain.ResourceStatus;
-import com.booking.app.resource.internal.exception.NameAlreadyTakenException;
-import com.booking.app.resource.internal.exception.ResourceNotFoundException;
 import com.booking.app.resource.internal.infrastructure.ResourceMapper;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
 import java.util.Locale;

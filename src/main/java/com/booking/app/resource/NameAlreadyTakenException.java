@@ -1,4 +1,4 @@
-package com.booking.app.resource.internal.exception;
+package com.booking.app.resource;
 
 public class NameAlreadyTakenException extends RuntimeException {
     public NameAlreadyTakenException(String name, Throwable cause) {
