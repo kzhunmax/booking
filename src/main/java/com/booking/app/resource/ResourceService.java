@@ -25,8 +25,7 @@ public class ResourceService {
     @Transactional(readOnly = true)
     public ResourceResponse findByPublicId(UUID publicId) {
         log.debug("Fetching resource by publicId={}", publicId);
-        Resource resource =
-                resourceRepository.findByPublicId(publicId).orElseThrow(() -> new ResourceNotFoundException(publicId));
+        Resource resource = requireResource(publicId);
         return ResourceMapper.toResponse(resource);
     }
 
@@ -36,6 +35,7 @@ public class ResourceService {
         log.debug("Creating resource with name={}", name);
         try {
             resourceRepository.saveAndFlush(resource);
+            log.info("Resource created: publicId={}, name={}", resource.getPublicId(), name);
             return ResourceMapper.toResponse(resource);
         } catch (DataIntegrityViolationException e) {
             throw new NameAlreadyTakenException(name, e);
@@ -50,13 +50,13 @@ public class ResourceService {
 
     @Transactional
     public ResourceResponse update(UUID publicId, String name, String description) {
-        Resource resource =
-                resourceRepository.findByPublicId(publicId).orElseThrow(() -> new ResourceNotFoundException(publicId));
+        Resource resource = requireResource(publicId);
+        String oldName = resource.getName();
         resource.rename(name);
         resource.changeDescription(description);
-
         try {
             resourceRepository.saveAndFlush(resource);
+            log.info("Updated resource: publicId={}, oldName={}, newName={}", publicId, oldName, name);
             return ResourceMapper.toResponse(resource);
         } catch (DataIntegrityViolationException e) {
             throw new NameAlreadyTakenException(name, e);
@@ -65,8 +65,8 @@ public class ResourceService {
 
     @Transactional
     public ResourceResponse updateStatus(UUID publicId, ResourceStatus status) {
-        Resource resource =
-                resourceRepository.findByPublicId(publicId).orElseThrow(() -> new ResourceNotFoundException(publicId));
+        Resource resource = requireResource(publicId);
+        ResourceStatus oldStatus = resource.getStatus();
         switch (status) {
             case ACTIVE -> resource.activate();
             case INACTIVE -> resource.deactivate();
@@ -74,14 +74,19 @@ public class ResourceService {
                 throw new InvalidStatusTransitionException("Archived resources cannot be changed via status update");
         }
         Resource updated = resourceRepository.save(resource);
+        log.info("Updated resource: publicId={}, oldStatus={}, newStatus={}", publicId, oldStatus, status);
         return ResourceMapper.toResponse(updated);
     }
 
     @Transactional
     public void archive(UUID publicId) {
-        Resource resource =
-                resourceRepository.findByPublicId(publicId).orElseThrow(() -> new ResourceNotFoundException(publicId));
+        Resource resource = requireResource(publicId);
         resource.archive();
+        log.info("Resource archived: publicId={}, name={}", publicId, resource.getName());
         resourceRepository.save(resource);
+    }
+
+    private Resource requireResource(UUID publicId) {
+        return resourceRepository.findByPublicId(publicId).orElseThrow(() -> new ResourceNotFoundException(publicId));
     }
 }
