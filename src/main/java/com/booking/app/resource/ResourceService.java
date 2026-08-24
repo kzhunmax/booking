@@ -60,8 +60,7 @@ public class ResourceService {
         switch (status) {
             case ACTIVE -> resource.activate();
             case INACTIVE -> resource.deactivate();
-            case ARCHIVED ->
-                throw new InvalidStatusTransitionException("Archived resources cannot be changed via status update");
+            case ARCHIVED -> throw new InvalidStatusTransitionException("Resources can only be archived via DELETE");
         }
         Resource updated = resourceRepository.save(resource);
         log.info("Updated resource: publicId={}, oldStatus={}, newStatus={}", publicId, oldStatus, status);

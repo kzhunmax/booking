@@ -101,7 +101,7 @@ public class Resource implements Identifiable {
 
     private void verifyArchivedStatus() {
         if (this.status == ResourceStatus.ARCHIVED) {
-            throw new InvalidStatusTransitionException("Archived resources cannot be changed via status update");
+            throw new InvalidStatusTransitionException("Archived resources cannot be changed");
         }
     }
 
@@ -113,10 +113,14 @@ public class Resource implements Identifiable {
     }
 
     private void validateName(String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name cannot be null or blank");
+        if (name == null) {
+            throw new IllegalArgumentException("Name cannot be null");
         }
-        if (name.length() > 255) {
+        String trimmed = name.strip();
+        if (trimmed.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be blank");
+        }
+        if (trimmed.length() > 255) {
             throw new IllegalArgumentException("Name cannot exceed 255 characters");
         }
     }
