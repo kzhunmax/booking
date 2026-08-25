@@ -25,7 +25,9 @@ public class ResourceService {
     @Transactional(readOnly = true)
     public ResourceResponse findByPublicId(UUID publicId) {
         log.debug("Fetching resource by publicId={}", publicId);
-        Resource resource = requireResource(publicId);
+        Resource resource = resourceRepository
+                .findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED)
+                .orElseThrow(() -> new ResourceNotFoundException(publicId));
         return ResourceMapper.toResponse(resource);
     }
 

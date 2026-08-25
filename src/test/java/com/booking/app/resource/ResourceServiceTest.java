@@ -47,20 +47,22 @@ class ResourceServiceTest {
     @DisplayName("Should find resource by publicId")
     void shouldFindResourceByPublicId() {
         UUID publicId = testResource.getPublicId();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.of(testResource));
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.of(testResource));
 
         ResourceResponse response = resourceService.findByPublicId(publicId);
 
         assertThat(response.publicId()).isEqualTo(publicId);
         assertThat(response.name()).isEqualTo("Conference Room");
-        verify(resourceRepository).findByPublicId(publicId);
+        verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
     }
 
     @Test
     @DisplayName("Should findByPublicId throw ResourceNotFoundException when resource does not exist")
     void shouldFindByPublicIdThrowResourceNotFoundExceptionWhenResourceDoesNotExist() {
         UUID publicId = testResource.getPublicId();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> resourceService.findByPublicId(publicId))
                 .isInstanceOf(ResourceNotFoundException.class);
