@@ -74,6 +74,7 @@ public class Resource implements Identifiable {
 
     public void rename(String name) {
         validateName(name);
+        verifyArchivedStatus();
         this.name = name.strip();
     }
 
@@ -82,6 +83,7 @@ public class Resource implements Identifiable {
     }
 
     public void changeDescription(String description) {
+        verifyArchivedStatus();
         this.description = description;
     }
 

@@ -132,5 +132,16 @@ class ResourceTest {
 
             assertThatThrownBy(() -> resource.rename("")).isInstanceOf(IllegalArgumentException.class);
         }
+
+        @Test
+        @DisplayName("should not rename or change description of archived resource")
+        void shouldNotChangeArchivedResource() {
+            Resource resource = new Resource("Room", "description");
+            resource.archive();
+
+            assertThatThrownBy(() -> resource.rename("New Name")).isInstanceOf(InvalidStatusTransitionException.class);
+            assertThatThrownBy(() -> resource.changeDescription("New description"))
+                    .isInstanceOf(InvalidStatusTransitionException.class);
+        }
     }
 }
