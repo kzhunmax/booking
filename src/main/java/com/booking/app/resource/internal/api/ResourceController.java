@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/resources")
@@ -43,7 +44,10 @@ public class ResourceController {
     @PostMapping
     public ResponseEntity<ResourceResponse> createResource(@Valid @RequestBody CreateResourceRequest request) {
         ResourceResponse created = resourceService.createResource(request.name(), request.description());
-        URI location = URI.create("/api/resources/" + created.publicId());
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(created.publicId())
+                .toUri();
         return ResponseEntity.created(location).body(created);
     }
 
