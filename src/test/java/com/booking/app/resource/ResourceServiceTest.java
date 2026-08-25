@@ -124,6 +124,7 @@ class ResourceServiceTest {
 
         assertThatThrownBy(() -> resourceService.update(publicId, "Room A", "description"))
                 .isInstanceOf(ResourceNotFoundException.class);
+        verify(resourceRepository, never()).save(any(Resource.class));
     }
 
     @Test
@@ -151,6 +152,7 @@ class ResourceServiceTest {
 
         assertThatThrownBy(() -> resourceService.updateStatus(publicId, ResourceStatus.INACTIVE))
                 .isInstanceOf(ResourceNotFoundException.class);
+        verify(resourceRepository, never()).save(any(Resource.class));
     }
 
     @ParameterizedTest
