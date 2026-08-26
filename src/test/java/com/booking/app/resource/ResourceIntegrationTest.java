@@ -3,9 +3,9 @@ package com.booking.app.resource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.booking.app.TestcontainersConfiguration;
-import com.booking.app.resource.internal.dto.CreateResourceRequest;
-import com.booking.app.resource.internal.dto.UpdateResourceRequest;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
+import com.booking.app.resource.internal.web.CreateResourceRequest;
+import com.booking.app.resource.internal.web.UpdateResourceRequest;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -36,6 +36,34 @@ class ResourceIntegrationTest {
 
     @Autowired
     private ResourceRepository resourceRepository;
+
+    private static String uniqueName(String prefix) {
+        return prefix + "-" + UUID.randomUUID();
+    }
+
+    private static <T> List<T> runConcurrently(Callable<T> first, Callable<T> second) throws Exception {
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<T> firstResult = executor.submit(gated(ready, start, first));
+            Future<T> secondResult = executor.submit(gated(ready, start, second));
+            if (!ready.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Workers did not become ready");
+            }
+            start.countDown();
+            return List.of(firstResult.get(10, TimeUnit.SECONDS), secondResult.get(10, TimeUnit.SECONDS));
+        }
+    }
+
+    private static <T> Callable<T> gated(CountDownLatch ready, CountDownLatch start, Callable<T> delegate) {
+        return () -> {
+            ready.countDown();
+            if (!start.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting for start signal");
+            }
+            return delegate.call();
+        };
+    }
 
     @Test
     @DisplayName("Concurrent creates with the same name (different case) yield one 201 and one 409")
@@ -136,33 +164,5 @@ class ResourceIntegrationTest {
                 .filter(resource -> resource.getStatus() != ResourceStatus.ARCHIVED)
                 .filter(resource -> resource.getName().equalsIgnoreCase(name))
                 .count();
-    }
-
-    private static String uniqueName(String prefix) {
-        return prefix + "-" + UUID.randomUUID();
-    }
-
-    private static <T> List<T> runConcurrently(Callable<T> first, Callable<T> second) throws Exception {
-        CountDownLatch ready = new CountDownLatch(2);
-        CountDownLatch start = new CountDownLatch(1);
-        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
-            Future<T> firstResult = executor.submit(gated(ready, start, first));
-            Future<T> secondResult = executor.submit(gated(ready, start, second));
-            if (!ready.await(5, TimeUnit.SECONDS)) {
-                throw new IllegalStateException("Workers did not become ready");
-            }
-            start.countDown();
-            return List.of(firstResult.get(10, TimeUnit.SECONDS), secondResult.get(10, TimeUnit.SECONDS));
-        }
-    }
-
-    private static <T> Callable<T> gated(CountDownLatch ready, CountDownLatch start, Callable<T> delegate) {
-        return () -> {
-            ready.countDown();
-            if (!start.await(5, TimeUnit.SECONDS)) {
-                throw new IllegalStateException("Timed out waiting for start signal");
-            }
-            return delegate.call();
-        };
     }
 }

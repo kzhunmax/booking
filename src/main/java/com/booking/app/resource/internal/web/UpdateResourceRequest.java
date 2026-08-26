@@ -1,4 +1,4 @@
-package com.booking.app.resource.internal.dto;
+package com.booking.app.resource.internal.web;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

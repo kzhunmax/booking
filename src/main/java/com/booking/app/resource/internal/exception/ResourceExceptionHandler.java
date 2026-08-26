@@ -3,7 +3,7 @@ package com.booking.app.resource.internal.exception;
 import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.NameAlreadyTakenException;
 import com.booking.app.resource.ResourceNotFoundException;
-import com.booking.app.resource.internal.api.ResourceController;
+import com.booking.app.resource.internal.web.ResourceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
