@@ -48,9 +48,7 @@ class ResourceTest {
         @Test
         @DisplayName("Should throw exception for name > 255 characters")
         void shouldThrowExceptionForNameLarger255() {
-            assertThatThrownBy(() -> new Resource(
-                            "mmeezeeg4iwaezai3ogh4eig3hij3ueh7kae4aeshe4oogaengah4wuphie3ie7ohh9oothai4ib4ijaimeiwee7ohxei4quei3ohghek4iuseighaep7ohhaa9ci4eehuz3ing3aet4chipaese7guothohphei7naexaeb9iejutee4aiyaethohdia3ooxooreib9cun3coofoociepeedooshothae3hae7ophail4xoh9beichijai4xah4",
-                            "description"))
+            assertThatThrownBy(() -> new Resource("a".repeat(256), "description"))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Name cannot exceed 255 characters");
         }
