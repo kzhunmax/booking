@@ -5,6 +5,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.ResourceStatus;
+import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,13 @@ class ResourceTest {
             assertThat(resource.getDescription()).isEqualTo(description);
             assertThat(resource.getStatus()).isEqualTo(ResourceStatus.ACTIVE);
             assertThat(resource.getPublicId()).isNotNull();
+            assertThat(resource.getAuditInfo()).isNotNull();
+
+            // Hibernate generates
+            assertThat(resource.getId()).isNull();
+            assertThat(resource.getVersion()).isNull();
+            assertThat(resource.getAuditInfo().getCreatedAt()).isNull();
+            assertThat(resource.getAuditInfo().getUpdatedAt()).isNull();
         }
 
         @Test
@@ -140,6 +149,19 @@ class ResourceTest {
             assertThatThrownBy(() -> resource.rename("New Name")).isInstanceOf(InvalidStatusTransitionException.class);
             assertThatThrownBy(() -> resource.changeDescription("New description"))
                     .isInstanceOf(InvalidStatusTransitionException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Equals and HashCode")
+    class Equality {
+        @Test
+        @DisplayName("Should verify equals and hashCode contract")
+        void shouldVerifyEqualsAndHashCode() {
+            EqualsVerifier.forClass(Resource.class)
+                    .withOnlyTheseFields("publicId")
+                    .suppress(Warning.NONFINAL_FIELDS)
+                    .verify();
         }
     }
 }
