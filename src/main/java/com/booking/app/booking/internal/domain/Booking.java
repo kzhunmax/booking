@@ -30,8 +30,8 @@ public class Booking implements Identifiable {
     private static final Duration CANCELLATION_DEADLINE = Duration.ofHours(2);
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "booking_seq")
-    @SequenceGenerator(name = "booking_seq", sequenceName = "booking_seq", allocationSize = 50)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "bookings_seq")
+    @SequenceGenerator(name = "bookings_seq", sequenceName = "bookings_seq", allocationSize = 50)
     private Long id;
 
     @Column(name = "public_id", unique = true, updatable = false, nullable = false)
