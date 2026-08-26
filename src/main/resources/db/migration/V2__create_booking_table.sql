@@ -1,6 +1,6 @@
 CREATE SEQUENCE booking_seq START WITH 1 INCREMENT BY 50;
 
-CREATE TABLE IF NOT EXISTS booking
+CREATE TABLE IF NOT EXISTS bookings
 (
     id             BIGINT       NOT NULL,
     public_id      UUID         NOT NULL,
@@ -19,5 +19,5 @@ CREATE TABLE IF NOT EXISTS booking
 );
 
 CREATE INDEX idx_booking_resource_time
-    ON booking (resource_id, starts_at, ends_at)
+    ON bookings (resource_id, starts_at, ends_at)
     WHERE status != 'CANCELLED';
