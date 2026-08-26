@@ -61,21 +61,17 @@ public class Booking implements Identifiable {
 
     protected Booking() {}
 
-    public Booking(UUID resourcePublicId, String customerEmail, String customerName, Instant startsAt, Instant endsAt) {
+    public Booking(UUID resourcePublicId, CustomerDetails customer, BookingInterval interval) {
         validateTimestamps(startsAt, endsAt);
         if (resourcePublicId == null) throw new IllegalArgumentException("resourceId cannot be null");
-        if (customerEmail == null || customerEmail.isBlank())
-            throw new IllegalArgumentException("customerEmail cannot be blank");
-        if (customerName == null || customerName.isBlank())
-            throw new IllegalArgumentException("customerName cannot be blank");
 
         this.publicId = UUID.randomUUID();
         this.auditInfo = new AuditInfo();
         this.resourcePublicId = resourcePublicId;
-        this.customerEmail = customerEmail;
-        this.customerName = customerName;
-        this.startsAt = startsAt;
-        this.endsAt = endsAt;
+        this.customerEmail = customer.email();
+        this.customerName = customer.name();
+        this.startsAt = interval.startsAt();
+        this.endsAt = interval.endsAt();
         this.status = BookingStatus.PENDING;
     }
 
