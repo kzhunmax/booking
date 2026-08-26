@@ -3,6 +3,7 @@ package com.booking.app.resource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.booking.app.TestcontainersConfiguration;
+import com.booking.app.resource.internal.domain.Resource;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
 import com.booking.app.resource.internal.web.CreateResourceRequest;
 import com.booking.app.resource.internal.web.UpdateResourceRequest;
@@ -121,6 +122,29 @@ class ResourceIntegrationTest {
         assertThat(reused.publicId()).isNotEqualTo(created.publicId());
         assertThat(reused.name()).isEqualTo(name);
         assertThat(countNonArchivedByNameIgnoreCase(name)).isOne();
+    }
+
+    @Test
+    @DisplayName("Concurrent updates to the same resource yield one 200 and one 409")
+    void shouldAllowOnlyOneUpdateWhenResourceUpdatedConcurrently() throws Exception {
+        ResourceResponse created = createResource(uniqueName("name"), "Old Description");
+        String firstDesc = "updated by first";
+        String secondDesc = "updated by second";
+
+        List<EntityExchangeResult<Void>> responses = runConcurrently(
+                () -> putResource(created.publicId(), uniqueName("name"), firstDesc),
+                () -> putResource(created.publicId(), uniqueName("name"), secondDesc));
+
+        assertThat(responses.stream().map(EntityExchangeResult::getStatus).toList())
+                .containsExactlyInAnyOrder(HttpStatus.OK, HttpStatus.CONFLICT);
+
+        Resource updatedEntity = resourceRepository.findAll().stream()
+                .filter(r -> r.getPublicId().equals(created.publicId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(updatedEntity.getVersion()).isEqualTo(1L);
+        assertThat(updatedEntity.getDescription()).isIn(firstDesc, secondDesc);
     }
 
     private ResourceResponse createResource(String name, String description) {

@@ -15,6 +15,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -31,6 +32,9 @@ public class Resource implements Identifiable {
 
     @Column(name = "public_id", unique = true, nullable = false, updatable = false)
     private UUID publicId;
+
+    @Version
+    private Long version;
 
     @Embedded
     private AuditInfo auditInfo;
@@ -62,6 +66,10 @@ public class Resource implements Identifiable {
     @Override
     public UUID getPublicId() {
         return publicId;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public AuditInfo getAuditInfo() {
