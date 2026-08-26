@@ -47,7 +47,7 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
-    implementation("org.springframework.boot:spring-boot-starter-security")
+//    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.flywaydb:flyway-database-postgresql")
@@ -55,7 +55,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+//    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
@@ -66,11 +66,22 @@ dependencies {
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useJUnitPlatform() {
+        excludeTags("integration")
+    }
+}
+
+val integrationTest = tasks.register<Test>("integrationTest") {
+    description = "Runs integration tests."
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    shouldRunAfter(tasks.test)
 }
 
 tasks.check {
-    dependsOn(tasks.spotlessCheck)
+    dependsOn(tasks.spotlessCheck, integrationTest)
 }
 
 tasks.jacocoTestReport {

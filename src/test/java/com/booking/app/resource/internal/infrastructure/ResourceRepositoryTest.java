@@ -8,6 +8,7 @@ import com.booking.app.resource.ResourceStatus;
 import com.booking.app.resource.internal.domain.Resource;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 @DataJpaTest
 @Import({TestcontainersConfiguration.class, JpaConfig.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Tag("integration")
 class ResourceRepositoryTest {
 
     @Autowired
