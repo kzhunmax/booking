@@ -2,8 +2,8 @@ package com.booking.app.resource.internal.exception;
 
 import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.NameAlreadyTakenException;
+import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
 import com.booking.app.resource.ResourceNotFoundException;
-import com.booking.app.resource.internal.web.ResourceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Order(1)
-@RestControllerAdvice(basePackageClasses = ResourceController.class)
+@RestControllerAdvice
 public class ResourceExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceExceptionHandler.class);
@@ -42,5 +42,14 @@ public class ResourceExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problemDetail.setTitle("Resource Name Taken");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problemDetail);
+    }
+
+    @ExceptionHandler(ResourceCurrentlyNotAvailableException.class)
+    public ResponseEntity<ProblemDetail> handleNotAvailable(ResourceCurrentlyNotAvailableException ex) {
+        log.warn("Resource not available: {}", ex.getMessage());
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage());
+        problemDetail.setTitle("Resource Not Available");
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(problemDetail);
     }
 }

@@ -17,8 +17,11 @@ import com.booking.app.booking.BookingAlreadyCompletedException;
 import com.booking.app.booking.BookingNotFoundException;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
+import com.booking.app.booking.BookingSlotAlreadyTakenException;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.CancellationTooLateException;
+import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
+import com.booking.app.resource.ResourceNotFoundException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -32,6 +35,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -240,6 +244,22 @@ class BookingControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/bookings/{publicId}/cancel - returns 409 when another transaction updated the booking")
+    void shouldReturnConflictWhenCancellingBookingWithStaleVersion() throws Exception {
+        UUID publicId = UUID.randomUUID();
+        when(bookingService.cancel(publicId))
+                .thenThrow(new ObjectOptimisticLockingFailureException("Booking", publicId));
+
+        mockMvc.perform(post("/api/bookings/{publicId}/cancel", publicId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Concurrent Modification Conflict"))
+                .andExpect(
+                        jsonPath("$.detail")
+                                .value(
+                                        "The entity was updated or deleted by another transaction. Please refresh and try again."));
+    }
+
+    @Test
     @DisplayName("POST /api/bookings/{publicId}/cancel - returns 422 when booking is already completed")
     void shouldReturnUnprocessableWhenCancellingCompletedBooking() throws Exception {
         UUID publicId = UUID.randomUUID();
@@ -280,6 +300,94 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(bookingService, never()).findAvailableSlots(any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /api/bookings/available-slots - returns 400 when date is missing")
+    void shouldReturnBadRequestWhenAvailableSlotsDateIsMissing() throws Exception {
+        mockMvc.perform(get("/api/bookings/available-slots")
+                        .param("resourceId", UUID.randomUUID().toString()))
+                .andExpect(status().isBadRequest());
+
+        verify(bookingService, never()).findAvailableSlots(any(), any());
+    }
+
+    @Test
+    @DisplayName("POST /api/bookings - returns 404 when resource does not exist")
+    void shouldReturnNotFoundWhenCreatingBookingForMissingResource() throws Exception {
+        UUID resourceId = UUID.randomUUID();
+        CreateBookingRequest request =
+                new CreateBookingRequest(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT);
+        when(bookingService.create(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT))
+                .thenThrow(new ResourceNotFoundException(resourceId));
+
+        mockMvc.perform(post("/api/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Resource Not Found"));
+    }
+
+    @Test
+    @DisplayName("POST /api/bookings - returns 422 when resource is not active")
+    void shouldReturnUnprocessableWhenCreatingBookingForInactiveResource() throws Exception {
+        UUID resourceId = UUID.randomUUID();
+        CreateBookingRequest request =
+                new CreateBookingRequest(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT);
+        when(bookingService.create(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT))
+                .thenThrow(new ResourceCurrentlyNotAvailableException(
+                        "Resource '%s' is not available for booking".formatted(resourceId)));
+
+        mockMvc.perform(post("/api/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.title").value("Resource Not Available"));
+    }
+
+    @Test
+    @DisplayName("POST /api/bookings - returns 409 when slot is already taken")
+    void shouldReturnConflictWhenCreatingOverlappingBooking() throws Exception {
+        UUID resourceId = UUID.randomUUID();
+        CreateBookingRequest request =
+                new CreateBookingRequest(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT);
+        when(bookingService.create(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT))
+                .thenThrow(new BookingSlotAlreadyTakenException(STARTS_AT, ENDS_AT, new RuntimeException("overlap")));
+
+        mockMvc.perform(post("/api/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Booking Slot Taken"));
+    }
+
+    @Test
+    @DisplayName("POST /api/bookings - returns 400 when domain rejects the argument")
+    void shouldReturnBadRequestWhenServiceThrowsIllegalArgumentException() throws Exception {
+        UUID resourceId = UUID.randomUUID();
+        CreateBookingRequest request =
+                new CreateBookingRequest(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT);
+        when(bookingService.create(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT))
+                .thenThrow(new IllegalArgumentException("Booking start must be in the future"));
+
+        mockMvc.perform(post("/api/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid Argument"))
+                .andExpect(jsonPath("$.detail").value("Booking start must be in the future"));
+    }
+
+    @Test
+    @DisplayName("GET /api/bookings - returns 200 OK with empty page when no bookings match")
+    void shouldReturnEmptyPageWhenNoBookingsMatch() throws Exception {
+        when(bookingService.findAll(isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/bookings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     private static BookingResponse bookingResponse(UUID publicId, UUID resourceId, BookingStatus status) {

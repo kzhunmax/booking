@@ -33,6 +33,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -379,6 +380,25 @@ class ResourceControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Invalid Argument"))
                 .andExpect(jsonPath("$.detail").value("Name cannot exceed 255 characters"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/resources/{publicId} - returns 409 when another transaction updated the resource")
+    void shouldReturnConflictWhenUpdatingResourceWithStaleVersion() throws Exception {
+        UUID publicId = UUID.randomUUID();
+        UpdateResourceRequest request = new UpdateResourceRequest("Updated Name", "Updated Description");
+        when(resourceService.update(publicId, request.name(), request.description()))
+                .thenThrow(new ObjectOptimisticLockingFailureException("Resource", publicId));
+
+        mockMvc.perform(put("/api/resources/{publicId}", publicId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Concurrent Modification Conflict"))
+                .andExpect(
+                        jsonPath("$.detail")
+                                .value(
+                                        "The entity was updated or deleted by another transaction. Please refresh and try again."));
     }
 
     @Test
