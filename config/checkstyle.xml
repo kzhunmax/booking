@@ -15,6 +15,8 @@
         <module name="OneTopLevelClass"/>
         <module name="OneStatementPerLine"/>
         <module name="MultipleVariableDeclarations"/>
+        <module name="ModifierOrder"/>
+        <module name="OverloadMethodsDeclarationOrder"/>
 
         <!-- Naming -->
         <module name="PackageName">
@@ -39,7 +41,15 @@
             <property name="illegalPkgs" value="sun, com.sun, jdk.internal"/>
         </module>
 
-        <!-- Common mistakes -->
+        <!-- Code Quality & Clean Code -->
+        <module name="MissingOverride"/>
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="expected|ignore"/>
+        </module>
+        <module name="DefaultComesLast"/>
+        <module name="FallThrough"/>
+        <module name="UpperEll"/>
+        <module name="CovariantEquals"/>
         <module name="EqualsHashCode"/>
         <module name="StringLiteralEquality"/>
         <module name="SimplifyBooleanExpression"/>
