@@ -1,19 +1,14 @@
 package com.booking.app.booking.internal.domain;
 
+import com.booking.app.common.Require;
 import java.time.Duration;
 import java.time.Instant;
 
 public record BookingInterval(Instant startsAt, Instant endsAt) {
     public BookingInterval {
-        if (startsAt == null) {
-            throw new IllegalArgumentException("startsAt cannot be null");
-        }
-        if (endsAt == null) {
-            throw new IllegalArgumentException("endsAt cannot be null");
-        }
-        if (!endsAt.isAfter(startsAt)) {
-            throw new IllegalArgumentException("ends_at must be after starts_at");
-        }
+        Require.notNull(startsAt, "startsAt cannot be null");
+        Require.notNull(endsAt, "endsAt cannot be null");
+        Require.argument(endsAt.isAfter(startsAt), "endsAt must be after startsAt");
     }
 
     public Duration duration() {
@@ -21,9 +16,7 @@ public record BookingInterval(Instant startsAt, Instant endsAt) {
     }
 
     public boolean overlaps(BookingInterval other) {
-        if (other == null) {
-            throw new IllegalArgumentException("other interval cannot be null");
-        }
+        Require.notNull(other, "other interval cannot be null");
         return this.startsAt.isBefore(other.endsAt) && this.endsAt.isAfter(other.startsAt);
     }
 }

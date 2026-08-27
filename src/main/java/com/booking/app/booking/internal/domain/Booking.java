@@ -6,6 +6,7 @@ import com.booking.app.booking.CancellationTooLateException;
 import com.booking.app.booking.InvalidStatusTransitionException;
 import com.booking.app.common.AuditInfo;
 import com.booking.app.common.Identifiable;
+import com.booking.app.common.Require;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -66,10 +67,12 @@ public class Booking implements Identifiable {
 
     protected Booking() {}
 
-    public Booking(UUID resourcePublicId, CustomerDetails customer, BookingInterval interval) {
-        if (resourcePublicId == null) throw new IllegalArgumentException("resourceId cannot be null");
-        if (customer == null) throw new IllegalArgumentException("customer cannot be null");
-        if (interval == null) throw new IllegalArgumentException("interval cannot be null");
+    public Booking(UUID resourcePublicId, CustomerDetails customer, BookingInterval interval, Instant now) {
+        Require.notNull(resourcePublicId, "resourcePublicId cannot be null");
+        Require.notNull(customer, "customer cannot be null");
+        Require.notNull(interval, "interval cannot be null");
+        Require.notNull(now, "now cannot be null");
+        Require.argument(interval.startsAt().isAfter(now), "startsAt must be in the future");
 
         this.publicId = UUID.randomUUID();
         this.auditInfo = new AuditInfo();
@@ -131,7 +134,8 @@ public class Booking implements Identifiable {
         this.status = BookingStatus.CONFIRMED;
     }
 
-    public void complete() {
+    public void complete(Instant now) {
+        Require.notNull(now, "now cannot be null");
         if (this.status == BookingStatus.CANCELLED) {
             throw new InvalidStatusTransitionException("Cannot complete a cancelled booking");
         }
@@ -141,21 +145,25 @@ public class Booking implements Identifiable {
         if (this.status == BookingStatus.COMPLETED) {
             return;
         }
+        if (now.isBefore(startsAt)) {
+            throw new InvalidStatusTransitionException("Cannot complete a booking that has not started");
+        }
         this.status = BookingStatus.COMPLETED;
     }
 
     public void cancel(Instant now) {
-        if (now == null) {
-            throw new IllegalArgumentException("now cannot be null");
-        }
+        Require.notNull(now, "now cannot be null");
         if (this.status == BookingStatus.CANCELLED) {
             return;
         }
         if (this.status == BookingStatus.COMPLETED) {
             throw new BookingAlreadyCompletedException("Cannot cancel a booking that has already been completed");
         }
+        if (!now.isBefore(startsAt)) {
+            throw new CancellationTooLateException("Cannot cancel a booking that has already started");
+        }
         if (now.plus(CANCELLATION_DEADLINE).isAfter(startsAt)) {
-            throw new CancellationTooLateException("You can't cancel later than 2 hours before starting date");
+            throw new CancellationTooLateException("Cannot cancel later than 2 hours before start");
         }
         this.status = BookingStatus.CANCELLED;
     }

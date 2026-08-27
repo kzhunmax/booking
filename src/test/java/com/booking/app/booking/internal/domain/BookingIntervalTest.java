@@ -48,7 +48,7 @@ class BookingIntervalTest {
         void shouldThrowWhenDurationIsZero() {
             assertThatThrownBy(() -> new BookingInterval(BASE, BASE))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("ends_at must be after starts_at");
+                    .hasMessage("endsAt must be after startsAt");
         }
 
         @Test
@@ -57,7 +57,7 @@ class BookingIntervalTest {
             Instant end = BASE.minus(Duration.ofMinutes(30));
             assertThatThrownBy(() -> new BookingInterval(BASE, end))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("ends_at must be after starts_at");
+                    .hasMessage("endsAt must be after startsAt");
         }
     }
 

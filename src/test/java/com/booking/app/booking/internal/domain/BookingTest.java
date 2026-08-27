@@ -37,7 +37,7 @@ class BookingTest {
     }
 
     private Booking createValidBooking() {
-        return new Booking(resourcePublicId, customer, interval);
+        return new Booking(resourcePublicId, customer, interval, BASE_TIME);
     }
 
     @Nested
@@ -62,15 +62,15 @@ class BookingTest {
         @Test
         @DisplayName("Should throw exception when resourcePublicId is null")
         void shouldThrowExceptionForNullResourcePublicId() {
-            assertThatThrownBy(() -> new Booking(null, customer, interval))
+            assertThatThrownBy(() -> new Booking(null, customer, interval, BASE_TIME))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("resourceId cannot be null");
+                    .hasMessage("resourcePublicId cannot be null");
         }
 
         @Test
         @DisplayName("Should throw exception when customer is null")
         void shouldThrowExceptionForNullCustomer() {
-            assertThatThrownBy(() -> new Booking(resourcePublicId, null, interval))
+            assertThatThrownBy(() -> new Booking(resourcePublicId, null, interval, BASE_TIME))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("customer cannot be null");
         }
@@ -78,9 +78,28 @@ class BookingTest {
         @Test
         @DisplayName("Should throw exception when interval is null")
         void shouldThrowExceptionForNullInterval() {
-            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, null))
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, null, BASE_TIME))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("interval cannot be null");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when now is null")
+        void shouldThrowExceptionForNullNow() {
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, interval, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("now cannot be null");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when startsAt is not in the future")
+        void shouldThrowExceptionWhenStartsAtIsNotInTheFuture() {
+            BookingInterval pastInterval =
+                    new BookingInterval(BASE_TIME.minus(Duration.ofHours(2)), BASE_TIME.minus(Duration.ofHours(1)));
+
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, pastInterval, BASE_TIME))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("startsAt must be in the future");
         }
     }
 
@@ -115,7 +134,7 @@ class BookingTest {
             Booking booking = createValidBooking();
             booking.confirm();
 
-            booking.complete();
+            booking.complete(startsAt);
 
             assertThat(booking.getStatus()).isEqualTo(BookingStatus.COMPLETED);
         }
@@ -125,9 +144,9 @@ class BookingTest {
         void shouldBeIdempotentWhenCompletingAlreadyCompletedBooking() {
             Booking booking = createValidBooking();
             booking.confirm();
-            booking.complete();
+            booking.complete(startsAt);
 
-            booking.complete();
+            booking.complete(startsAt);
 
             assertThat(booking.getStatus()).isEqualTo(BookingStatus.COMPLETED);
         }
@@ -137,9 +156,31 @@ class BookingTest {
         void shouldNotCompletePendingBooking() {
             Booking booking = createValidBooking();
 
-            assertThatThrownBy(booking::complete)
+            assertThatThrownBy(() -> booking.complete(startsAt))
                     .isInstanceOf(InvalidStatusTransitionException.class)
                     .hasMessage("Cannot complete a booking that has not been confirmed");
+        }
+
+        @Test
+        @DisplayName("Should not complete confirmed booking before it has started")
+        void shouldNotCompleteBookingBeforeStart() {
+            Booking booking = createValidBooking();
+            booking.confirm();
+
+            assertThatThrownBy(() -> booking.complete(startsAt.minus(Duration.ofMinutes(1))))
+                    .isInstanceOf(InvalidStatusTransitionException.class)
+                    .hasMessage("Cannot complete a booking that has not started");
+        }
+
+        @Test
+        @DisplayName("Should throw IllegalArgumentException when complete timestamp is null")
+        void shouldThrowExceptionWhenCompleteTimestampIsNull() {
+            Booking booking = createValidBooking();
+            booking.confirm();
+
+            assertThatThrownBy(() -> booking.complete(null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("now cannot be null");
         }
 
         @Test
@@ -158,7 +199,7 @@ class BookingTest {
         void shouldNotConfirmCompletedBooking() {
             Booking booking = createValidBooking();
             booking.confirm();
-            booking.complete();
+            booking.complete(startsAt);
 
             assertThatThrownBy(booking::confirm)
                     .isInstanceOf(InvalidStatusTransitionException.class)
@@ -171,7 +212,7 @@ class BookingTest {
             Booking booking = createValidBooking();
             booking.cancel(startsAt.minus(Duration.ofHours(3)));
 
-            assertThatThrownBy(booking::complete)
+            assertThatThrownBy(() -> booking.complete(startsAt))
                     .isInstanceOf(InvalidStatusTransitionException.class)
                     .hasMessage("Cannot complete a cancelled booking");
         }
@@ -223,7 +264,7 @@ class BookingTest {
 
             assertThatThrownBy(() -> booking.cancel(lateTime))
                     .isInstanceOf(CancellationTooLateException.class)
-                    .hasMessage("You can't cancel later than 2 hours before starting date");
+                    .hasMessage("Cannot cancel later than 2 hours before start");
         }
 
         @Test
@@ -232,7 +273,9 @@ class BookingTest {
             Booking booking = createValidBooking();
             Instant afterStart = startsAt.plus(Duration.ofMinutes(10)); // 14:10 for 14:00
 
-            assertThatThrownBy(() -> booking.cancel(afterStart)).isInstanceOf(CancellationTooLateException.class);
+            assertThatThrownBy(() -> booking.cancel(afterStart))
+                    .isInstanceOf(CancellationTooLateException.class)
+                    .hasMessage("Cannot cancel a booking that has already started");
         }
 
         @Test
@@ -262,7 +305,7 @@ class BookingTest {
         void shouldThrowExceptionWhenCancellingCompletedBooking() {
             Booking booking = createValidBooking();
             booking.confirm();
-            booking.complete();
+            booking.complete(startsAt);
 
             Instant cancelTime = startsAt.minus(Duration.ofHours(3));
 
