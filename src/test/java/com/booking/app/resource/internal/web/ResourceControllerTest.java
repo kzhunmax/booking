@@ -161,20 +161,20 @@ class ResourceControllerTest {
     @DisplayName("PATCH /api/resources/{publicId}/status - returns 200 OK with updated status")
     void shouldUpdateResourceStatusSuccessfully() throws Exception {
         UUID publicId = UUID.randomUUID();
-        UpdateStatusRequest request = new UpdateStatusRequest(ResourceStatus.ARCHIVED);
+        UpdateStatusRequest request = new UpdateStatusRequest(ResourceStatus.INACTIVE);
         ResourceResponse updatedResponse =
-                new ResourceResponse(publicId, "Conference Room", "Large meeting room", ResourceStatus.ARCHIVED);
+                new ResourceResponse(publicId, "Conference Room", "Large meeting room", ResourceStatus.INACTIVE);
 
-        when(resourceService.updateStatus(publicId, ResourceStatus.ARCHIVED)).thenReturn(updatedResponse);
+        when(resourceService.updateStatus(publicId, ResourceStatus.INACTIVE)).thenReturn(updatedResponse);
 
         mockMvc.perform(patch("/api/resources/{publicId}/status", publicId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.publicId").value(publicId.toString()))
-                .andExpect(jsonPath("$.status").value("ARCHIVED"));
+                .andExpect(jsonPath("$.status").value("INACTIVE"));
 
-        verify(resourceService).updateStatus(publicId, ResourceStatus.ARCHIVED);
+        verify(resourceService).updateStatus(publicId, ResourceStatus.INACTIVE);
     }
 
     @Test
@@ -272,14 +272,21 @@ class ResourceControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/resources - returns 400 when description is missing")
-    void shouldReturnBadRequestWhenCreateDescriptionIsMissing() throws Exception {
+    @DisplayName("POST /api/resources - returns 201 Created when description is missing")
+    void shouldCreateResourceWhenDescriptionIsMissing() throws Exception {
+        UUID publicId = UUID.randomUUID();
+        when(resourceService.createResource("Conference Room", null))
+                .thenReturn(new ResourceResponse(publicId, "Conference Room", null, ResourceStatus.ACTIVE));
+
         mockMvc.perform(post("/api/resources")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Conference Room\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Conference Room"))
+                .andExpect(jsonPath("$.description").isEmpty())
+                .andExpect(jsonPath("$.publicId").value(publicId.toString()));
 
-        verify(resourceService, never()).createResource(any(), any());
+        verify(resourceService).createResource("Conference Room", null);
     }
 
     @Test
@@ -344,19 +351,34 @@ class ResourceControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/resources/{publicId} - returns 422 when resource is archived")
-    void shouldReturnUnprocessableWhenUpdatingArchivedResource() throws Exception {
+    @DisplayName("PUT /api/resources/{publicId} - returns 404 when resource is archived")
+    void shouldReturnNotFoundWhenUpdatingArchivedResource() throws Exception {
         UUID publicId = UUID.randomUUID();
         UpdateResourceRequest request = new UpdateResourceRequest("Updated Name", "Updated Description");
         when(resourceService.update(publicId, request.name(), request.description()))
-                .thenThrow(new InvalidStatusTransitionException("Archived resources cannot be changed"));
+                .thenThrow(new ResourceNotFoundException(publicId));
 
         mockMvc.perform(put("/api/resources/{publicId}", publicId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.title").value("Resource Status Invalid Transition"))
-                .andExpect(jsonPath("$.detail").value("Archived resources cannot be changed"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Resource Not Found"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/resources/{publicId} - returns 400 when domain rejects the argument")
+    void shouldReturnBadRequestWhenServiceThrowsIllegalArgumentException() throws Exception {
+        UUID publicId = UUID.randomUUID();
+        UpdateResourceRequest request = new UpdateResourceRequest("Updated Name", "Updated Description");
+        when(resourceService.update(publicId, request.name(), request.description()))
+                .thenThrow(new IllegalArgumentException("Name cannot exceed 255 characters"));
+
+        mockMvc.perform(put("/api/resources/{publicId}", publicId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid Argument"))
+                .andExpect(jsonPath("$.detail").value("Name cannot exceed 255 characters"));
     }
 
     @Test

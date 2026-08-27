@@ -2,6 +2,7 @@ package com.booking.app.resource.internal.domain;
 
 import com.booking.app.common.AuditInfo;
 import com.booking.app.common.Identifiable;
+import com.booking.app.common.Require;
 import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.ResourceStatus;
 import jakarta.persistence.Column;
@@ -24,6 +25,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Table(name = "resources")
 @EntityListeners(AuditingEntityListener.class)
 public class Resource implements Identifiable {
+
+    private static final int NAME_MAX_LENGTH = 255;
+    private static final int DESCRIPTION_MAX_LENGTH = 10000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "resources_seq")
@@ -52,11 +56,10 @@ public class Resource implements Identifiable {
     protected Resource() {}
 
     public Resource(String name, String description) {
-        validateName(name);
         this.publicId = UUID.randomUUID();
         this.auditInfo = new AuditInfo();
-        this.name = name.strip();
-        this.description = description;
+        this.name = validateName(name);
+        this.description = normalizeDescription(description);
     }
 
     public Long getId() {
@@ -81,9 +84,8 @@ public class Resource implements Identifiable {
     }
 
     public void rename(String name) {
-        validateName(name);
         verifyArchivedStatus();
-        this.name = name.strip();
+        this.name = validateName(name);
     }
 
     public String getDescription() {
@@ -92,7 +94,7 @@ public class Resource implements Identifiable {
 
     public void changeDescription(String description) {
         verifyArchivedStatus();
-        this.description = description;
+        this.description = normalizeDescription(description);
     }
 
     public ResourceStatus getStatus() {
@@ -122,17 +124,24 @@ public class Resource implements Identifiable {
         this.status = ResourceStatus.ARCHIVED;
     }
 
-    private void validateName(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("Name cannot be null");
-        }
+    private String validateName(String name) {
+        Require.notNull(name, "Name cannot be null");
         String trimmed = name.strip();
-        if (trimmed.isBlank()) {
-            throw new IllegalArgumentException("Name cannot be blank");
+        Require.argument(!trimmed.isBlank(), "Name cannot be blank");
+        Require.argument(trimmed.length() <= NAME_MAX_LENGTH, "Name cannot exceed 255 characters");
+        return trimmed;
+    }
+
+    private String normalizeDescription(String description) {
+        if (description == null) {
+            return null;
         }
-        if (trimmed.length() > 255) {
-            throw new IllegalArgumentException("Name cannot exceed 255 characters");
+        String trimmed = description.strip();
+        if (trimmed.isEmpty()) {
+            return null;
         }
+        Require.argument(trimmed.length() <= DESCRIPTION_MAX_LENGTH, "Description cannot exceed 10000 characters");
+        return trimmed;
     }
 
     @Override

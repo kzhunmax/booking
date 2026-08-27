@@ -68,6 +68,28 @@ class ResourceTest {
             Resource resource = new Resource("   Room A  ", "description");
             assertThat(resource.getName()).isEqualTo("Room A");
         }
+
+        @Test
+        @DisplayName("Should allow null description")
+        void shouldAllowNullDescription() {
+            Resource resource = new Resource("Room A", null);
+            assertThat(resource.getDescription()).isNull();
+        }
+
+        @Test
+        @DisplayName("Should store blank description as null")
+        void shouldStoreBlankDescriptionAsNull() {
+            Resource resource = new Resource("Room A", "   ");
+            assertThat(resource.getDescription()).isNull();
+        }
+
+        @Test
+        @DisplayName("Should throw exception for description > 10000 characters")
+        void shouldThrowExceptionForDescriptionLarger10000() {
+            assertThatThrownBy(() -> new Resource("Room A", "a".repeat(10001)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Description cannot exceed 10000 characters");
+        }
     }
 
     @Nested
