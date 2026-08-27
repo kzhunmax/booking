@@ -19,14 +19,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler({ObjectOptimisticLockingFailureException.class, ConcurrencyFailureException.class})
     public ProblemDetail handleOptimisticLockingFailure(Exception ex) {
-        log.warn("Resource was updated by another transaction: {}", ex.getMessage());
+        log.warn("Concurrent modification: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.CONFLICT,
-                "The resource was updated or deleted by another transaction. Please refresh and try again.");
+                "The entity was updated or deleted by another transaction. Please refresh and try again.");
         problemDetail.setTitle("Concurrent Modification Conflict");
         problemDetail.setProperty("timestamp", Instant.now());
-
         return problemDetail;
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Invalid argument: {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problemDetail.setTitle("Invalid Argument");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return ResponseEntity.badRequest().body(problemDetail);
     }
 
     @ExceptionHandler(Exception.class)
@@ -35,6 +43,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problemDetail =
                 ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
         problemDetail.setTitle("Internal Server Error");
+        problemDetail.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
     }
 }
