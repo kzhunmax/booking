@@ -62,6 +62,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("nl.jqno.equalsverifier:equalsverifier:4.5.1")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     errorprone("com.google.errorprone:error_prone_core:2.50.0")
 }

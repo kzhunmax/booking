@@ -3,7 +3,7 @@ package com.booking.app.resource.internal.infrastructure;
 import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.internal.domain.Resource;
 
-public class ResourceMapper {
+public final class ResourceMapper {
 
     private ResourceMapper() {}
 
