@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS resources
 (
     id          BIGINT       NOT NULL,
     public_id   UUID         NOT NULL,
+    version     BIGINT       NOT NULL DEFAULT 0,
     name        VARCHAR(255) NOT NULL,
     description TEXT,
     status      VARCHAR(50)  NOT NULL DEFAULT 'ACTIVE',

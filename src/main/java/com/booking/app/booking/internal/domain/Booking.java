@@ -3,6 +3,7 @@ package com.booking.app.booking.internal.domain;
 import com.booking.app.booking.BookingAlreadyCompletedException;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.CancellationTooLateException;
+import com.booking.app.booking.InvalidStatusTransitionException;
 import com.booking.app.common.AuditInfo;
 import com.booking.app.common.Identifiable;
 import jakarta.persistence.Column;
@@ -16,6 +17,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -36,6 +38,9 @@ public class Booking implements Identifiable {
 
     @Column(name = "public_id", unique = true, updatable = false, nullable = false)
     private UUID publicId;
+
+    @Version
+    private Long version;
 
     @Column(name = "resource_id", nullable = false)
     private UUID resourcePublicId;
@@ -62,8 +67,9 @@ public class Booking implements Identifiable {
     protected Booking() {}
 
     public Booking(UUID resourcePublicId, CustomerDetails customer, BookingInterval interval) {
-        validateTimestamps(startsAt, endsAt);
         if (resourcePublicId == null) throw new IllegalArgumentException("resourceId cannot be null");
+        if (customer == null) throw new IllegalArgumentException("customer cannot be null");
+        if (interval == null) throw new IllegalArgumentException("interval cannot be null");
 
         this.publicId = UUID.randomUUID();
         this.auditInfo = new AuditInfo();
@@ -78,6 +84,10 @@ public class Booking implements Identifiable {
     @Override
     public UUID getPublicId() {
         return publicId;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public UUID getResourcePublicId() {
@@ -108,18 +118,39 @@ public class Booking implements Identifiable {
         return auditInfo;
     }
 
-    private void validateTimestamps(Instant startsAt, Instant endsAt) {
-        if (startsAt == null || endsAt == null) {
-            throw new IllegalArgumentException("Interval values cannot be null");
+    public void confirm() {
+        if (this.status == BookingStatus.CANCELLED) {
+            throw new InvalidStatusTransitionException("Cannot confirm a cancelled booking");
         }
-        if (endsAt.isBefore(startsAt) || endsAt.equals(startsAt)) {
-            throw new IllegalArgumentException("ends_at must be after starts_at");
+        if (this.status == BookingStatus.COMPLETED) {
+            throw new InvalidStatusTransitionException("Cannot confirm a completed booking");
         }
+        if (this.status == BookingStatus.CONFIRMED) {
+            return;
+        }
+        this.status = BookingStatus.CONFIRMED;
+    }
+
+    public void complete() {
+        if (this.status == BookingStatus.CANCELLED) {
+            throw new InvalidStatusTransitionException("Cannot complete a cancelled booking");
+        }
+        if (this.status == BookingStatus.PENDING) {
+            throw new InvalidStatusTransitionException("Cannot complete a booking that has not been confirmed");
+        }
+        if (this.status == BookingStatus.COMPLETED) {
+            return;
+        }
+        this.status = BookingStatus.COMPLETED;
     }
 
     public void cancel(Instant now) {
-        Objects.requireNonNull(now, "now cannot be null");
-        if (this.status == BookingStatus.CANCELLED) return;
+        if (now == null) {
+            throw new IllegalArgumentException("now cannot be null");
+        }
+        if (this.status == BookingStatus.CANCELLED) {
+            return;
+        }
         if (this.status == BookingStatus.COMPLETED) {
             throw new BookingAlreadyCompletedException("Cannot cancel a booking that has already been completed");
         }
