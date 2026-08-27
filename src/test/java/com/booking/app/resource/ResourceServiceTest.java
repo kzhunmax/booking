@@ -122,11 +122,12 @@ class ResourceServiceTest {
     @DisplayName("Should update throw ResourceNotFoundException when resource does not exist")
     void shouldUpdateThrowResourceNotFoundExceptionWhenResourceDoesNotExist() {
         UUID publicId = testResource.getPublicId();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> resourceService.update(publicId, "Room A", "description"))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(resourceRepository, never()).save(any(Resource.class));
+        verify(resourceRepository, never()).saveAndFlush(any(Resource.class));
     }
 
     @Test
@@ -135,14 +136,15 @@ class ResourceServiceTest {
         UUID publicId = testResource.getPublicId();
         String newName = "New Room";
         String newDescription = "New description";
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.of(testResource));
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.of(testResource));
         when(resourceRepository.saveAndFlush(any(Resource.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ResourceResponse response = resourceService.update(publicId, newName, newDescription);
 
         assertThat(response.name()).isEqualTo(newName);
         assertThat(response.description()).isEqualTo(newDescription);
-        verify(resourceRepository).findByPublicId(publicId);
+        verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
         verify(resourceRepository).saveAndFlush(any(Resource.class));
     }
 
@@ -150,11 +152,12 @@ class ResourceServiceTest {
     @DisplayName("Should update status throw ResourceNotFoundException when resource does not exist")
     void shouldUpdateStatusThrowResourceNotFoundExceptionWhenResourceDoesNotExist() {
         UUID publicId = testResource.getPublicId();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> resourceService.updateStatus(publicId, ResourceStatus.INACTIVE))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(resourceRepository, never()).save(any(Resource.class));
+        verify(resourceRepository, never()).saveAndFlush(any(Resource.class));
     }
 
     @ParameterizedTest
@@ -165,45 +168,53 @@ class ResourceServiceTest {
     @DisplayName("Should update resource status successfully")
     void shouldUpdateResourceStatusSuccessfully(ResourceStatus newStatus) {
         UUID publicId = testResource.getPublicId();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.of(testResource));
-        when(resourceRepository.save(any(Resource.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.of(testResource));
+        when(resourceRepository.saveAndFlush(any(Resource.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ResourceResponse response = resourceService.updateStatus(publicId, newStatus);
 
         assertThat(response.status()).isEqualTo(newStatus);
-        verify(resourceRepository).findByPublicId(publicId);
-        verify(resourceRepository).save(any(Resource.class));
+        verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
+        verify(resourceRepository).saveAndFlush(any(Resource.class));
     }
 
     @Test
     @DisplayName("Should throw InvalidStatusTransitionException when update with status ARCHIVED")
     void shouldThrowInvalidStatusTransitionExceptionWhenUpdateWithStatusArchived() {
         UUID publicId = testResource.getPublicId();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.of(testResource));
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.of(testResource));
 
         assertThatThrownBy(() -> resourceService.updateStatus(publicId, ResourceStatus.ARCHIVED))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessage("Resources can only be archived via DELETE");
-        verify(resourceRepository).findByPublicId(publicId);
-        verify(resourceRepository, never()).save(any(Resource.class));
+        verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
+        verify(resourceRepository, never()).saveAndFlush(any(Resource.class));
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = ResourceStatus.class,
-            mode = EnumSource.Mode.EXCLUDE,
-            names = {"ARCHIVED"})
-    @DisplayName("Should throw InvalidStatusTransitionException when update status already ARCHIVED")
-    void shouldThrowInvalidStatusTransitionExceptionWhenUpdateStatusAlreadyArchived(ResourceStatus newStatus) {
+    @Test
+    @DisplayName("Should update throw ResourceNotFoundException when resource is archived")
+    void shouldUpdateThrowResourceNotFoundExceptionWhenResourceIsArchived() {
         UUID publicId = testResource.getPublicId();
-        testResource.archive();
-        when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.of(testResource));
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> resourceService.updateStatus(publicId, newStatus))
-                .isInstanceOf(InvalidStatusTransitionException.class)
-                .hasMessage("Archived resources cannot be changed");
-        verify(resourceRepository).findByPublicId(publicId);
-        verify(resourceRepository, never()).save(any(Resource.class));
+        assertThatThrownBy(() -> resourceService.update(publicId, "Room A", "description"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(resourceRepository, never()).saveAndFlush(any(Resource.class));
+    }
+
+    @Test
+    @DisplayName("Should update status throw ResourceNotFoundException when resource is archived")
+    void shouldUpdateStatusThrowResourceNotFoundExceptionWhenResourceIsArchived() {
+        UUID publicId = testResource.getPublicId();
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> resourceService.updateStatus(publicId, ResourceStatus.INACTIVE))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(resourceRepository, never()).saveAndFlush(any(Resource.class));
     }
 
     @Test
@@ -213,7 +224,7 @@ class ResourceServiceTest {
         when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> resourceService.archive(publicId)).isInstanceOf(ResourceNotFoundException.class);
-        verify(resourceRepository, never()).save(any(Resource.class));
+        verify(resourceRepository, never()).saveAndFlush(any(Resource.class));
     }
 
     @Test
@@ -221,11 +232,11 @@ class ResourceServiceTest {
     void shouldArchiveResource() {
         UUID publicId = testResource.getPublicId();
         when(resourceRepository.findByPublicId(publicId)).thenReturn(Optional.of(testResource));
-        when(resourceRepository.save(any(Resource.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(resourceRepository.saveAndFlush(any(Resource.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         resourceService.archive(publicId);
 
         assertThat(testResource.getStatus()).isEqualTo(ResourceStatus.ARCHIVED);
-        verify(resourceRepository).save(testResource);
+        verify(resourceRepository).saveAndFlush(testResource);
     }
 }

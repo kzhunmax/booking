@@ -1,5 +1,6 @@
 package com.booking.app.resource;
 
+import com.booking.app.common.Require;
 import com.booking.app.resource.internal.domain.Resource;
 import com.booking.app.resource.internal.infrastructure.ResourceMapper;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceService.class);
+    private static final String UNIQUE_NAME_CONSTRAINT = "uk_resources_name_lower";
+
     private final ResourceRepository resourceRepository;
 
     public ResourceService(ResourceRepository resourceRepository) {
@@ -25,10 +28,7 @@ public class ResourceService {
     @Transactional(readOnly = true)
     public ResourceResponse findByPublicId(UUID publicId) {
         log.debug("Fetching resource by publicId={}", publicId);
-        Resource resource = resourceRepository
-                .findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED)
-                .orElseThrow(() -> new ResourceNotFoundException(publicId));
-        return ResourceMapper.toResponse(resource);
+        return ResourceMapper.toResponse(requireVisibleResource(publicId));
     }
 
     @Transactional
@@ -41,12 +41,14 @@ public class ResourceService {
 
     @Transactional(readOnly = true)
     public Page<ResourceResponse> findAll(ResourceStatus status, Pageable pageable) {
+        Require.notNull(status, "status cannot be null");
+        Require.notNull(pageable, "pageable cannot be null");
         return resourceRepository.findByStatus(status, pageable).map(ResourceMapper::toResponse);
     }
 
     @Transactional
     public ResourceResponse update(UUID publicId, String name, String description) {
-        Resource resource = requireResource(publicId);
+        Resource resource = requireVisibleResource(publicId);
         String oldName = resource.getName();
         resource.rename(name);
         resource.changeDescription(description);
@@ -57,16 +59,17 @@ public class ResourceService {
 
     @Transactional
     public ResourceResponse updateStatus(UUID publicId, ResourceStatus status) {
-        Resource resource = requireResource(publicId);
+        Require.notNull(status, "status cannot be null");
+        Resource resource = requireVisibleResource(publicId);
         ResourceStatus oldStatus = resource.getStatus();
         switch (status) {
             case ACTIVE -> resource.activate();
             case INACTIVE -> resource.deactivate();
             case ARCHIVED -> throw new InvalidStatusTransitionException("Resources can only be archived via DELETE");
         }
-        Resource updated = resourceRepository.save(resource);
+        persist(resource);
         log.info("Updated resource: publicId={}, oldStatus={}, newStatus={}", publicId, oldStatus, status);
-        return ResourceMapper.toResponse(updated);
+        return ResourceMapper.toResponse(resource);
     }
 
     @Transactional
@@ -74,7 +77,13 @@ public class ResourceService {
         Resource resource = requireResource(publicId);
         resource.archive();
         log.info("Resource archived: publicId={}, name={}", publicId, resource.getName());
-        resourceRepository.save(resource);
+        persist(resource);
+    }
+
+    private Resource requireVisibleResource(UUID publicId) {
+        return resourceRepository
+                .findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED)
+                .orElseThrow(() -> new ResourceNotFoundException(publicId));
     }
 
     private Resource requireResource(UUID publicId) {
@@ -85,11 +94,15 @@ public class ResourceService {
         try {
             resourceRepository.saveAndFlush(resource);
         } catch (DataIntegrityViolationException e) {
-            String message = e.getMostSpecificCause().getMessage();
-            if (message != null && message.contains("uk_resources_name_lower")) {
+            if (isUniqueNameViolation(e)) {
                 throw new NameAlreadyTakenException(resource.getName(), e);
             }
             throw e;
         }
+    }
+
+    private boolean isUniqueNameViolation(DataIntegrityViolationException e) {
+        String message = e.getMostSpecificCause().getMessage();
+        return message != null && message.contains(UNIQUE_NAME_CONSTRAINT);
     }
 }
