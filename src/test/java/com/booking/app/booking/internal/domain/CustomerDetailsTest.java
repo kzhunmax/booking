@@ -23,6 +23,34 @@ class CustomerDetailsTest {
         }
 
         @Test
+        @DisplayName("Should normalize email and trim name")
+        void shouldNormalizeEmailAndTrimName() {
+            CustomerDetails details = new CustomerDetails("  User@Example.COM  ", "  John Doe  ");
+
+            assertThat(details.email()).isEqualTo("user@example.com");
+            assertThat(details.name()).isEqualTo("John Doe");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when email is invalid")
+        void shouldThrowWhenEmailIsInvalid() {
+            assertThatThrownBy(() -> new CustomerDetails("not-an-email", "John Doe"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Email is invalid");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when email exceeds 255 characters")
+        void shouldThrowWhenEmailExceedsMaxLength() {
+            String localPart = "a".repeat(244);
+            String email = localPart + "@example.com";
+
+            assertThatThrownBy(() -> new CustomerDetails(email, "John Doe"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Email cannot exceed 255 characters");
+        }
+
+        @Test
         @DisplayName("Should throw exception when email is null")
         void shouldThrowWhenEmailIsNull() {
             assertThatThrownBy(() -> new CustomerDetails(null, "John Doe"))
