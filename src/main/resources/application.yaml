@@ -1,3 +1,12 @@
 spring:
   application:
     name: app
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration/resources
+      - classpath:db/migration/booking
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
