@@ -239,4 +239,49 @@ class ResourceServiceTest {
         assertThat(testResource.getStatus()).isEqualTo(ResourceStatus.ARCHIVED);
         verify(resourceRepository).saveAndFlush(testResource);
     }
+
+    @Test
+    @DisplayName("Should requireActive succeed when resource is ACTIVE")
+    void shouldRequireActiveWhenResourceIsActive() {
+        UUID publicId = testResource.getPublicId();
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.of(testResource));
+
+        resourceService.requireActive(publicId);
+
+        verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
+    }
+
+    @Test
+    @DisplayName("Should requireActive throw ResourceNotFoundException when resource does not exist")
+    void shouldRequireActiveThrowResourceNotFoundExceptionWhenResourceDoesNotExist() {
+        UUID publicId = testResource.getPublicId();
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> resourceService.requireActive(publicId)).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Should requireActive throw ResourceNotFoundException when resource is archived")
+    void shouldRequireActiveThrowResourceNotFoundExceptionWhenResourceIsArchived() {
+        UUID publicId = testResource.getPublicId();
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> resourceService.requireActive(publicId)).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Should requireActive throw ResourceCurrentlyNotAvailableException when resource is inactive")
+    void shouldRequireActiveThrowWhenResourceIsInactive() {
+        UUID publicId = testResource.getPublicId();
+        testResource.deactivate();
+        when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
+                .thenReturn(Optional.of(testResource));
+
+        assertThatThrownBy(() -> resourceService.requireActive(publicId))
+                .isInstanceOf(ResourceCurrentlyNotAvailableException.class)
+                .hasMessage("Resource '%s' is not available for booking".formatted(publicId));
+    }
 }
