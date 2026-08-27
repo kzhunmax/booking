@@ -1,6 +1,6 @@
 package com.booking.app.booking;
 
-public class BookingAlreadyCompletedException extends IllegalArgumentException {
+public class BookingAlreadyCompletedException extends InvalidStatusTransitionException {
     public BookingAlreadyCompletedException(String message) {
         super(message);
     }
