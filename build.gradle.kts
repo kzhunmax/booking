@@ -66,8 +66,8 @@ dependencies {
     errorprone("com.google.errorprone:error_prone_core:2.50.0")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform() {
+tasks.named<Test>("test") {
+    useJUnitPlatform {
         excludeTags("integration")
     }
 }
@@ -75,10 +75,12 @@ tasks.withType<Test> {
 val integrationTest = tasks.register<Test>("integrationTest") {
     description = "Runs integration tests."
     group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    shouldRunAfter(tasks.test)
     useJUnitPlatform {
         includeTags("integration")
     }
-    shouldRunAfter(tasks.test)
 }
 
 tasks.check {
