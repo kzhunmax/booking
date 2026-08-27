@@ -1,6 +1,7 @@
 package com.booking.app.booking.internal.exception;
 
 import com.booking.app.booking.BookingAlreadyCompletedException;
+import com.booking.app.booking.BookingNotFoundException;
 import com.booking.app.booking.CancellationTooLateException;
 import com.booking.app.booking.InvalidStatusTransitionException;
 import com.booking.app.booking.internal.web.BookingController;
@@ -18,6 +19,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class BookingExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(BookingExceptionHandler.class);
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleNotFound(BookingNotFoundException ex) {
+        log.warn("Booking not found: {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problemDetail.setTitle("Booking Not Found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problemDetail);
+    }
 
     @ExceptionHandler(CancellationTooLateException.class)
     public ResponseEntity<ProblemDetail> handleCancellation(CancellationTooLateException ex) {
