@@ -53,4 +53,14 @@ class ResourceRepositoryTest {
         assertThat(activePage.getTotalElements()).isOne();
         assertThat(activePage.getContent().getFirst().getName()).isEqualTo("Active Room");
     }
+
+    @Test
+    void shouldPersistResourceWithGeneratedFields() {
+        Resource resource = new Resource("Room A", "Desc");
+        Resource saved = resourceRepository.saveAndFlush(resource);
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getVersion()).isNotNull();
+        assertThat(saved.getAuditInfo().getCreatedAt()).isNotNull();
+        assertThat(saved.getAuditInfo().getUpdatedAt()).isNotNull();
+    }
 }
