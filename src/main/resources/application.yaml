@@ -6,6 +6,7 @@ spring:
     locations:
       - classpath:db/migration/resources
       - classpath:db/migration/booking
+      - classpath:db/migration/payments
   jpa:
     hibernate:
       ddl-auto: none
