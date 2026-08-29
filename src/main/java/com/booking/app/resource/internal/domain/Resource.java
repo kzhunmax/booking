@@ -73,10 +73,6 @@ public class Resource implements Identifiable {
         this.currency = pricing.currency().strip().toUpperCase();
     }
 
-    public Long getId() {
-        return id;
-    }
-
     @Override
     public UUID getPublicId() {
         return publicId;
