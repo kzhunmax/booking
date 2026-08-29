@@ -17,6 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -26,8 +27,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 public class Resource implements Identifiable {
 
-    private static final int NAME_MAX_LENGTH = 255;
-    private static final int DESCRIPTION_MAX_LENGTH = 10000;
+    private static final int CURRENCY_CODE_LENGTH = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "resources_seq")
@@ -53,13 +53,24 @@ public class Resource implements Identifiable {
     @Enumerated(EnumType.STRING)
     private ResourceStatus status = ResourceStatus.ACTIVE;
 
+    @Column(name = "price_per_hour", nullable = false, precision = 19, scale = 4)
+    private BigDecimal pricePerHour;
+
+    @Column(name = "price_currency", nullable = false, length = CURRENCY_CODE_LENGTH)
+    private String currency;
+
     protected Resource() {}
 
-    public Resource(String name, String description) {
+    public Resource(ResourceDetails details, ResourcePricing pricing) {
+        Require.notNull(details, "details cannot be null");
+        Require.notNull(pricing, "pricing cannot be null");
+
         this.publicId = UUID.randomUUID();
         this.auditInfo = new AuditInfo();
-        this.name = validateName(name);
-        this.description = normalizeDescription(description);
+        this.name = details.name();
+        this.description = details.description();
+        this.pricePerHour = pricing.pricePerHour();
+        this.currency = pricing.currency().strip().toUpperCase();
     }
 
     public Long getId() {
@@ -83,22 +94,27 @@ public class Resource implements Identifiable {
         return name;
     }
 
-    public void rename(String name) {
+    public void updateDetails(ResourceDetails details) {
         verifyArchivedStatus();
-        this.name = validateName(name);
+        Require.notNull(details, "details cannot be null");
+        this.name = details.name();
+        this.description = details.description();
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void changeDescription(String description) {
-        verifyArchivedStatus();
-        this.description = normalizeDescription(description);
-    }
-
     public ResourceStatus getStatus() {
         return status;
+    }
+
+    public BigDecimal getPricePerHour() {
+        return pricePerHour;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 
     public void activate() {
@@ -122,26 +138,6 @@ public class Resource implements Identifiable {
             return;
         }
         this.status = ResourceStatus.ARCHIVED;
-    }
-
-    private String validateName(String name) {
-        Require.notNull(name, "Name cannot be null");
-        String trimmed = name.strip();
-        Require.argument(!trimmed.isBlank(), "Name cannot be blank");
-        Require.argument(trimmed.length() <= NAME_MAX_LENGTH, "Name cannot exceed 255 characters");
-        return trimmed;
-    }
-
-    private String normalizeDescription(String description) {
-        if (description == null) {
-            return null;
-        }
-        String trimmed = description.strip();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-        Require.argument(trimmed.length() <= DESCRIPTION_MAX_LENGTH, "Description cannot exceed 10000 characters");
-        return trimmed;
     }
 
     @Override

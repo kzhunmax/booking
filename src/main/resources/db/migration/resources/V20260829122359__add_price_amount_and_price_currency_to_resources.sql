@@ -1,0 +1,3 @@
+ALTER TABLE resources
+    ADD COLUMN price_per_hour DECIMAL(19, 4) NOT NULL DEFAULT 0.01,
+    ADD COLUMN price_currency VARCHAR(3) NOT NULL DEFAULT 'USD';

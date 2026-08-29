@@ -9,6 +9,11 @@ public final class ResourceMapper {
 
     public static ResourceResponse toResponse(Resource resource) {
         return new ResourceResponse(
-                resource.getPublicId(), resource.getName(), resource.getDescription(), resource.getStatus());
+                resource.getPublicId(),
+                resource.getName(),
+                resource.getDescription(),
+                resource.getStatus(),
+                resource.getPricePerHour(),
+                resource.getCurrency());
     }
 }

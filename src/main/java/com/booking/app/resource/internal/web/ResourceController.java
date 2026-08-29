@@ -40,7 +40,8 @@ public class ResourceController {
 
     @PostMapping
     public ResponseEntity<ResourceResponse> createResource(@Valid @RequestBody CreateResourceRequest request) {
-        ResourceResponse created = resourceService.createResource(request.name(), request.description());
+        ResourceResponse created = resourceService.createResource(
+                request.name(), request.description(), request.pricePerHour(), request.currency());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(created.publicId())

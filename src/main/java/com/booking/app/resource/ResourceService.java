@@ -2,8 +2,11 @@ package com.booking.app.resource;
 
 import com.booking.app.common.Require;
 import com.booking.app.resource.internal.domain.Resource;
+import com.booking.app.resource.internal.domain.ResourceDetails;
+import com.booking.app.resource.internal.domain.ResourcePricing;
 import com.booking.app.resource.internal.infrastructure.ResourceMapper;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +35,10 @@ public class ResourceService {
     }
 
     @Transactional
-    public ResourceResponse createResource(String name, String description) {
-        Resource resource = new Resource(name, description);
+    public ResourceResponse createResource(String name, String description, BigDecimal pricePerHour, String currency) {
+        ResourceDetails details = new ResourceDetails(name, description);
+        ResourcePricing pricing = new ResourcePricing(pricePerHour, currency);
+        Resource resource = new Resource(details, pricing);
         persist(resource);
         log.info("Resource created: publicId={}, name={}", resource.getPublicId(), name);
         return ResourceMapper.toResponse(resource);
@@ -50,8 +55,7 @@ public class ResourceService {
     public ResourceResponse update(UUID publicId, String name, String description) {
         Resource resource = requireVisibleResource(publicId);
         String oldName = resource.getName();
-        resource.rename(name);
-        resource.changeDescription(description);
+        resource.updateDetails(new ResourceDetails(name, description));
         persist(resource);
         log.info("Updated resource: publicId={}, oldName={}, newName={}", publicId, oldName, name);
         return ResourceMapper.toResponse(resource);
