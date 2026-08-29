@@ -19,6 +19,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -31,6 +32,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 public class Booking implements Identifiable {
 
     private static final Duration CANCELLATION_DEADLINE = Duration.ofHours(2);
+    private static final int CURRENCY_CODE_LENGTH = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "bookings_seq")
@@ -62,16 +64,28 @@ public class Booking implements Identifiable {
     @Column(name = "status", nullable = false)
     private BookingStatus status;
 
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
+
+    @Column(name = "currency", nullable = false, length = CURRENCY_CODE_LENGTH)
+    private String currency;
+
     @Embedded
     private AuditInfo auditInfo;
 
     protected Booking() {}
 
-    public Booking(UUID resourcePublicId, CustomerDetails customer, BookingInterval interval, Instant now) {
+    public Booking(
+            UUID resourcePublicId,
+            CustomerDetails customer,
+            BookingInterval interval,
+            Instant now,
+            BookingPricing pricing) {
         Require.notNull(resourcePublicId, "resourcePublicId cannot be null");
         Require.notNull(customer, "customer cannot be null");
         Require.notNull(interval, "interval cannot be null");
         Require.notNull(now, "now cannot be null");
+        Require.notNull(pricing, "pricing cannot be null");
         Require.argument(interval.startsAt().isAfter(now), "startsAt must be in the future");
 
         this.publicId = UUID.randomUUID();
@@ -82,6 +96,8 @@ public class Booking implements Identifiable {
         this.startsAt = interval.startsAt();
         this.endsAt = interval.endsAt();
         this.status = BookingStatus.PENDING;
+        this.totalAmount = pricing.totalAmount();
+        this.currency = pricing.currency();
     }
 
     @Override
@@ -115,6 +131,14 @@ public class Booking implements Identifiable {
 
     public BookingStatus getStatus() {
         return status;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public String getCurrency() {
+        return currency;
     }
 
     public AuditInfo getAuditInfo() {

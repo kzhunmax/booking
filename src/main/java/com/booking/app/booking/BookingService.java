@@ -2,11 +2,15 @@ package com.booking.app.booking;
 
 import com.booking.app.booking.internal.domain.Booking;
 import com.booking.app.booking.internal.domain.BookingInterval;
+import com.booking.app.booking.internal.domain.BookingPricing;
 import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.booking.internal.infrastructure.BookingMapper;
 import com.booking.app.booking.internal.infrastructure.BookingRepository;
 import com.booking.app.booking.internal.infrastructure.BookingSpecifications;
+import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceService;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -45,10 +49,14 @@ public class BookingService {
     @Transactional
     public BookingResponse create(
             UUID resourceId, String customerEmail, String customerName, Instant startsAt, Instant endsAt) {
-        resourceService.requireActive(resourceId);
+        ResourceResponse resourceResponse = resourceService.requireActive(resourceId);
         CustomerDetails details = new CustomerDetails(customerEmail, customerName);
         BookingInterval interval = new BookingInterval(startsAt, endsAt);
-        Booking booking = new Booking(resourceId, details, interval, clock.instant());
+        BigDecimal hours = BigDecimal.valueOf(interval.duration().toMinutes())
+                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = resourceResponse.pricePerHour().multiply(hours).setScale(2, RoundingMode.HALF_UP);
+        BookingPricing pricing = new BookingPricing(totalAmount, resourceResponse.currency());
+        Booking booking = new Booking(resourceId, details, interval, clock.instant(), pricing);
         persist(booking);
         log.info("Booking created: publicId={}, customerEmail={}", booking.getPublicId(), booking.getCustomerEmail());
         return BookingMapper.toResponse(booking);
@@ -85,6 +93,15 @@ public class BookingService {
         List<Booking> bookings = bookingRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "startsAt"));
         List<AvailableSlotsResponse.TimeSlot> slots = availableSlots(bookings, dayStart, dayEnd);
         return new AvailableSlotsResponse(resourceId, date, slots);
+    }
+
+    @Transactional
+    public BookingResponse confirm(UUID publicId) {
+        Booking found = requireBooking(publicId);
+        found.confirm();
+        persist(found);
+        log.info("Booking confirmed: publicId={}", publicId);
+        return BookingMapper.toResponse(found);
     }
 
     private List<AvailableSlotsResponse.TimeSlot> availableSlots(

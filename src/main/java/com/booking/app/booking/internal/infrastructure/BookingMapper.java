@@ -14,6 +14,8 @@ public final class BookingMapper {
                 booking.getCustomerName(),
                 booking.getStartsAt(),
                 booking.getEndsAt(),
-                booking.getStatus());
+                booking.getStatus(),
+                booking.getTotalAmount(),
+                booking.getCurrency());
     }
 }

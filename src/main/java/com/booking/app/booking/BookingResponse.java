@@ -1,5 +1,6 @@
 package com.booking.app.booking;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -10,4 +11,6 @@ public record BookingResponse(
         String customerName,
         Instant startsAt,
         Instant endsAt,
-        BookingStatus status) {}
+        BookingStatus status,
+        BigDecimal totalAmount,
+        String currency) {}

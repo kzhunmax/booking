@@ -85,12 +85,13 @@ public class ResourceService {
     }
 
     @Transactional(readOnly = true)
-    public void requireActive(UUID publicId) {
+    public ResourceResponse requireActive(UUID publicId) {
         ResourceResponse resource = findByPublicId(publicId);
         if (resource.status() != ResourceStatus.ACTIVE) {
             throw new ResourceCurrentlyNotAvailableException(
                     "Resource '%s' is not available for booking".formatted(publicId));
         }
+        return resource;
     }
 
     private Resource requireVisibleResource(UUID publicId) {
