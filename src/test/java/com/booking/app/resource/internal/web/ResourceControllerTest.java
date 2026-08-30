@@ -22,6 +22,7 @@ import com.booking.app.resource.ResourceNotFoundException;
 import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceService;
 import com.booking.app.resource.ResourceStatus;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +42,9 @@ import tools.jackson.databind.ObjectMapper;
 @WebMvcTest(controllers = ResourceController.class)
 class ResourceControllerTest {
 
+    private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(100.0);
+    private static final String DEFAULT_CURRENCY = "USD";
+
     @MockitoBean
     ResourceService resourceService;
 
@@ -54,8 +58,13 @@ class ResourceControllerTest {
     @DisplayName("GET /api/resources/{publicId} - returns 200 OK with resource payload")
     void shouldReturnResourceWhenFoundByPublicId() throws Exception {
         UUID publicId = UUID.randomUUID();
-        ResourceResponse response =
-                new ResourceResponse(publicId, "Conference Room", "Large meeting room", ResourceStatus.ACTIVE);
+        ResourceResponse response = new ResourceResponse(
+                publicId,
+                "Conference Room",
+                "Large meeting room",
+                ResourceStatus.ACTIVE,
+                DEFAULT_PRICE,
+                DEFAULT_CURRENCY);
         when(resourceService.findByPublicId(publicId)).thenReturn(response);
 
         mockMvc.perform(get("/api/resources/{publicId}", publicId))
@@ -63,6 +72,8 @@ class ResourceControllerTest {
                 .andExpect(jsonPath("$.name").value("Conference Room"))
                 .andExpect(jsonPath("$.description").value("Large meeting room"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.pricePerHour").value(100.0))
+                .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.publicId").value(publicId.toString()));
 
         verify(resourceService).findByPublicId(publicId);
@@ -72,10 +83,16 @@ class ResourceControllerTest {
     @DisplayName("POST /api/resources - returns 201 Created and location header when request is valid")
     void shouldCreateResourceSuccessfully() throws Exception {
         UUID publicId = UUID.randomUUID();
-        CreateResourceRequest request = new CreateResourceRequest("Conference Room", "Large meeting room");
-        when(resourceService.createResource("Conference Room", "Large meeting room"))
-                .thenReturn(
-                        new ResourceResponse(publicId, "Conference Room", "Large meeting room", ResourceStatus.ACTIVE));
+        CreateResourceRequest request =
+                new CreateResourceRequest("Conference Room", "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY);
+        when(resourceService.createResource("Conference Room", "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY))
+                .thenReturn(new ResourceResponse(
+                        publicId,
+                        "Conference Room",
+                        "Large meeting room",
+                        ResourceStatus.ACTIVE,
+                        DEFAULT_PRICE,
+                        DEFAULT_CURRENCY));
 
         mockMvc.perform(post("/api/resources")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -85,17 +102,25 @@ class ResourceControllerTest {
                 .andExpect(jsonPath("$.name").value("Conference Room"))
                 .andExpect(jsonPath("$.description").value("Large meeting room"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.pricePerHour").value(100.0))
+                .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.publicId").value(publicId.toString()));
 
-        verify(resourceService).createResource("Conference Room", "Large meeting room");
+        verify(resourceService)
+                .createResource("Conference Room", "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY);
     }
 
     @Test
     @DisplayName("GET /api/resources - returns 200 OK with active resources using default pageable")
     void shouldReturnActiveResourcesWithDefaultPaginationWhenStatusNotProvided() throws Exception {
         UUID publicId = UUID.randomUUID();
-        ResourceResponse response =
-                new ResourceResponse(publicId, "Conference Room", "Large meeting room", ResourceStatus.ACTIVE);
+        ResourceResponse response = new ResourceResponse(
+                publicId,
+                "Conference Room",
+                "Large meeting room",
+                ResourceStatus.ACTIVE,
+                DEFAULT_PRICE,
+                DEFAULT_CURRENCY);
         Pageable pageable = PageRequest.of(0, 20);
         Page<ResourceResponse> page = new PageImpl<>(List.of(response), pageable, 1);
 
@@ -107,6 +132,8 @@ class ResourceControllerTest {
                 .andExpect(jsonPath("$.content[0].name").value("Conference Room"))
                 .andExpect(jsonPath("$.content[0].description").value("Large meeting room"))
                 .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.content[0].pricePerHour").value(100.0))
+                .andExpect(jsonPath("$.content[0].currency").value("USD"))
                 .andExpect(jsonPath("$.content[0].publicId").value(publicId.toString()))
                 .andExpect(jsonPath("$.totalElements").value(1));
 
@@ -117,8 +144,13 @@ class ResourceControllerTest {
     @DisplayName("GET /api/resources?status=ARCHIVED - returns 200 OK with filtered resources by status")
     void shouldReturnFilteredResourcesWhenStatusProvided() throws Exception {
         UUID publicId = UUID.randomUUID();
-        ResourceResponse response =
-                new ResourceResponse(publicId, "Old Room", "Archived meeting room", ResourceStatus.ARCHIVED);
+        ResourceResponse response = new ResourceResponse(
+                publicId,
+                "Old Room",
+                "Archived meeting room",
+                ResourceStatus.ARCHIVED,
+                DEFAULT_PRICE,
+                DEFAULT_CURRENCY);
         Pageable pageable = PageRequest.of(0, 20);
         Page<ResourceResponse> page = new PageImpl<>(List.of(response), pageable, 1);
 
@@ -140,8 +172,13 @@ class ResourceControllerTest {
     void shouldUpdateResourceSuccessfully() throws Exception {
         UUID publicId = UUID.randomUUID();
         UpdateResourceRequest request = new UpdateResourceRequest("Updated Name", "Updated Description");
-        ResourceResponse updatedResponse =
-                new ResourceResponse(publicId, "Updated Name", "Updated Description", ResourceStatus.ACTIVE);
+        ResourceResponse updatedResponse = new ResourceResponse(
+                publicId,
+                "Updated Name",
+                "Updated Description",
+                ResourceStatus.ACTIVE,
+                DEFAULT_PRICE,
+                DEFAULT_CURRENCY);
 
         when(resourceService.update(publicId, request.name(), request.description()))
                 .thenReturn(updatedResponse);
@@ -163,8 +200,13 @@ class ResourceControllerTest {
     void shouldUpdateResourceStatusSuccessfully() throws Exception {
         UUID publicId = UUID.randomUUID();
         UpdateStatusRequest request = new UpdateStatusRequest(ResourceStatus.INACTIVE);
-        ResourceResponse updatedResponse =
-                new ResourceResponse(publicId, "Conference Room", "Large meeting room", ResourceStatus.INACTIVE);
+        ResourceResponse updatedResponse = new ResourceResponse(
+                publicId,
+                "Conference Room",
+                "Large meeting room",
+                ResourceStatus.INACTIVE,
+                DEFAULT_PRICE,
+                DEFAULT_CURRENCY);
 
         when(resourceService.updateStatus(publicId, ResourceStatus.INACTIVE)).thenReturn(updatedResponse);
 
@@ -249,52 +291,84 @@ class ResourceControllerTest {
     @Test
     @DisplayName("POST /api/resources - returns 400 when name is blank")
     void shouldReturnBadRequestWhenCreateNameIsBlank() throws Exception {
-        CreateResourceRequest request = new CreateResourceRequest("   ", "Large meeting room");
+        CreateResourceRequest request =
+                new CreateResourceRequest("   ", "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY);
 
         mockMvc.perform(post("/api/resources")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(resourceService, never()).createResource(any(), any());
+        verify(resourceService, never()).createResource(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("POST /api/resources - returns 400 when name exceeds 255 characters")
     void shouldReturnBadRequestWhenCreateNameExceedsMaxLength() throws Exception {
-        CreateResourceRequest request = new CreateResourceRequest("a".repeat(256), "Large meeting room");
+        CreateResourceRequest request =
+                new CreateResourceRequest("a".repeat(256), "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY);
 
         mockMvc.perform(post("/api/resources")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(resourceService, never()).createResource(any(), any());
+        verify(resourceService, never()).createResource(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("POST /api/resources - returns 400 when price is missing or not positive")
+    void shouldReturnBadRequestWhenCreatePriceIsInvalid() throws Exception {
+        String jsonNullPrice = "{\"name\":\"Conference Room\",\"pricePerHour\":null,\"currency\":\"USD\"}";
+        mockMvc.perform(post("/api/resources")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonNullPrice))
+                .andExpect(status().isBadRequest());
+
+        String jsonZeroPrice = "{\"name\":\"Conference Room\",\"pricePerHour\":0,\"currency\":\"USD\"}";
+        mockMvc.perform(post("/api/resources")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonZeroPrice))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/resources - returns 400 when currency is invalid")
+    void shouldReturnBadRequestWhenCreateCurrencyIsInvalid() throws Exception {
+        String jsonShortCurrency = "{\"name\":\"Conference Room\",\"pricePerHour\":100,\"currency\":\"US\"}";
+        mockMvc.perform(post("/api/resources")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonShortCurrency))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("POST /api/resources - returns 201 Created when description is missing")
     void shouldCreateResourceWhenDescriptionIsMissing() throws Exception {
         UUID publicId = UUID.randomUUID();
-        when(resourceService.createResource("Conference Room", null))
-                .thenReturn(new ResourceResponse(publicId, "Conference Room", null, ResourceStatus.ACTIVE));
+        when(resourceService.createResource("Conference Room", null, DEFAULT_PRICE, DEFAULT_CURRENCY))
+                .thenReturn(new ResourceResponse(
+                        publicId, "Conference Room", null, ResourceStatus.ACTIVE, DEFAULT_PRICE, DEFAULT_CURRENCY));
 
         mockMvc.perform(post("/api/resources")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Conference Room\"}"))
+                        .content("{\"name\":\"Conference Room\",\"pricePerHour\":100.0,\"currency\":\"USD\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Conference Room"))
                 .andExpect(jsonPath("$.description").isEmpty())
+                .andExpect(jsonPath("$.pricePerHour").value(100.0))
+                .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.publicId").value(publicId.toString()));
 
-        verify(resourceService).createResource("Conference Room", null);
+        verify(resourceService).createResource("Conference Room", null, DEFAULT_PRICE, DEFAULT_CURRENCY);
     }
 
     @Test
     @DisplayName("POST /api/resources - returns 409 when name is already taken")
     void shouldReturnConflictWhenCreateNameIsAlreadyTaken() throws Exception {
-        CreateResourceRequest request = new CreateResourceRequest("Conference Room", "Large meeting room");
-        when(resourceService.createResource("Conference Room", "Large meeting room"))
+        CreateResourceRequest request =
+                new CreateResourceRequest("Conference Room", "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY);
+        when(resourceService.createResource("Conference Room", "Large meeting room", DEFAULT_PRICE, DEFAULT_CURRENCY))
                 .thenThrow(new NameAlreadyTakenException("Conference Room", new RuntimeException("duplicate")));
 
         mockMvc.perform(post("/api/resources")

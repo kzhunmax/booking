@@ -7,6 +7,7 @@ import com.booking.app.resource.internal.domain.Resource;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
 import com.booking.app.resource.internal.web.CreateResourceRequest;
 import com.booking.app.resource.internal.web.UpdateResourceRequest;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -33,6 +34,9 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 @Import(TestcontainersConfiguration.class)
 @Tag("integration")
 class ResourceIntegrationTest {
+
+    private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(50.0);
+    private static final String DEFAULT_CURRENCY = "USD";
 
     @Autowired
     private RestTestClient restTestClient;
@@ -154,7 +158,7 @@ class ResourceIntegrationTest {
                 .post()
                 .uri("/api/resources")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreateResourceRequest(name, description))
+                .body(new CreateResourceRequest(name, description, DEFAULT_PRICE, DEFAULT_CURRENCY))
                 .exchange()
                 .expectStatus()
                 .isCreated()
@@ -170,7 +174,7 @@ class ResourceIntegrationTest {
                 .post()
                 .uri("/api/resources")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreateResourceRequest(name, description))
+                .body(new CreateResourceRequest(name, description, DEFAULT_PRICE, DEFAULT_CURRENCY))
                 .exchange()
                 .returnResult(Void.class);
     }

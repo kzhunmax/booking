@@ -6,6 +6,9 @@ import com.booking.app.TestcontainersConfiguration;
 import com.booking.app.config.JpaConfig;
 import com.booking.app.resource.ResourceStatus;
 import com.booking.app.resource.internal.domain.Resource;
+import com.booking.app.resource.internal.domain.ResourceDetails;
+import com.booking.app.resource.internal.domain.ResourcePricing;
+import java.math.BigDecimal;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -23,26 +26,36 @@ import org.springframework.data.domain.PageRequest;
 @Tag("integration")
 class ResourceRepositoryTest {
 
+    private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(100.0);
+    private static final String DEFAULT_CURRENCY = "USD";
+
     @Autowired
     private ResourceRepository resourceRepository;
+
+    private static Resource resource(String name, String description) {
+        return new Resource(
+                new ResourceDetails(name, description), new ResourcePricing(DEFAULT_PRICE, DEFAULT_CURRENCY));
+    }
 
     @Test
     @DisplayName("Should save and find resource by publicId")
     void shouldSaveAndFindByPublicId() {
-        Resource resource = new Resource("Room A", "Description");
+        Resource res = resource("Room A", "Description");
 
-        resourceRepository.saveAndFlush(resource);
-        Optional<Resource> found = resourceRepository.findByPublicId(resource.getPublicId());
+        resourceRepository.saveAndFlush(res);
+        Optional<Resource> found = resourceRepository.findByPublicId(res.getPublicId());
 
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Room A");
+        assertThat(found.get().getPricePerHour()).isEqualByComparingTo(DEFAULT_PRICE);
+        assertThat(found.get().getCurrency()).isEqualTo("USD");
     }
 
     @Test
     @DisplayName("Should find resources by status")
     void shouldFindResourcesByStatus() {
-        Resource activeResource = new Resource("Active Room", "desc");
-        Resource inactiveResource = new Resource("Inactive Room", "desc");
+        Resource activeResource = resource("Active Room", "desc");
+        Resource inactiveResource = resource("Inactive Room", "desc");
         inactiveResource.deactivate();
 
         resourceRepository.saveAndFlush(activeResource);
@@ -56,9 +69,8 @@ class ResourceRepositoryTest {
 
     @Test
     void shouldPersistResourceWithGeneratedFields() {
-        Resource resource = new Resource("Room A", "Desc");
-        Resource saved = resourceRepository.saveAndFlush(resource);
-        assertThat(saved.getId()).isNotNull();
+        Resource res = resource("Room A", "Desc");
+        Resource saved = resourceRepository.saveAndFlush(res);
         assertThat(saved.getVersion()).isNotNull();
         assertThat(saved.getAuditInfo().getCreatedAt()).isNotNull();
         assertThat(saved.getAuditInfo().getUpdatedAt()).isNotNull();

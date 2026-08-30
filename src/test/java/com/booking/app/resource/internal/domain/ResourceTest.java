@@ -5,90 +5,66 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.ResourceStatus;
+import java.math.BigDecimal;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class ResourceTest {
 
+    private ResourceDetails defaultDetails;
+    private ResourcePricing defaultPricing;
+
+    @BeforeEach
+    void setUp() {
+        defaultDetails = new ResourceDetails("Conference Room A", "Large Meeting Room");
+        defaultPricing = new ResourcePricing(BigDecimal.valueOf(100), "USD");
+    }
+
+    private Resource createValidResource() {
+        return new Resource(defaultDetails, defaultPricing);
+    }
+
     @Nested
     @DisplayName("Resource Creation")
     class Creation {
 
         @Test
-        @DisplayName("Should create resource with valid name")
-        void shouldCreateResourceWithValidName() {
-            String name = "Conference Room A";
-            String description = "Large Meeting Room";
+        @DisplayName("Should create resource with valid details and pricing")
+        void shouldCreateResourceWithValidFields() {
+            Resource resource = createValidResource();
 
-            Resource resource = new Resource(name, description);
-
-            assertThat(resource.getName()).isEqualTo(name);
-            assertThat(resource.getDescription()).isEqualTo(description);
+            assertThat(resource.getName()).isEqualTo("Conference Room A");
+            assertThat(resource.getDescription()).isEqualTo("Large Meeting Room");
             assertThat(resource.getStatus()).isEqualTo(ResourceStatus.ACTIVE);
+            assertThat(resource.getPricePerHour()).isEqualTo(BigDecimal.valueOf(100));
+            assertThat(resource.getCurrency()).isEqualTo("USD");
             assertThat(resource.getPublicId()).isNotNull();
             assertThat(resource.getAuditInfo()).isNotNull();
 
             // Hibernate generates
-            assertThat(resource.getId()).isNull();
             assertThat(resource.getVersion()).isNull();
             assertThat(resource.getAuditInfo().getCreatedAt()).isNull();
             assertThat(resource.getAuditInfo().getUpdatedAt()).isNull();
         }
 
         @Test
-        @DisplayName("Should throw exception for blank name")
-        void shouldThrowExceptionForBlankName() {
-            assertThatThrownBy(() -> new Resource("", "description"))
+        @DisplayName("Should throw exception when details is null")
+        void shouldThrowExceptionWhenDetailsIsNull() {
+            assertThatThrownBy(() -> new Resource(null, defaultPricing))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Name cannot be blank");
+                    .hasMessage("details cannot be null");
         }
 
         @Test
-        @DisplayName("Should throw exception for null name")
-        void shouldThrowExceptionForNullName() {
-            assertThatThrownBy(() -> new Resource(null, "description"))
+        @DisplayName("Should throw exception when pricing is null")
+        void shouldThrowExceptionWhenPricingIsNull() {
+            assertThatThrownBy(() -> new Resource(defaultDetails, null))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Name cannot be null");
-        }
-
-        @Test
-        @DisplayName("Should throw exception for name > 255 characters")
-        void shouldThrowExceptionForNameLarger255() {
-            assertThatThrownBy(() -> new Resource("a".repeat(256), "description"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Name cannot exceed 255 characters");
-        }
-
-        @Test
-        @DisplayName("Should trim name whitespace")
-        void shouldTrimNameWhitespace() {
-            Resource resource = new Resource("   Room A  ", "description");
-            assertThat(resource.getName()).isEqualTo("Room A");
-        }
-
-        @Test
-        @DisplayName("Should allow null description")
-        void shouldAllowNullDescription() {
-            Resource resource = new Resource("Room A", null);
-            assertThat(resource.getDescription()).isNull();
-        }
-
-        @Test
-        @DisplayName("Should store blank description as null")
-        void shouldStoreBlankDescriptionAsNull() {
-            Resource resource = new Resource("Room A", "   ");
-            assertThat(resource.getDescription()).isNull();
-        }
-
-        @Test
-        @DisplayName("Should throw exception for description > 10000 characters")
-        void shouldThrowExceptionForDescriptionLarger10000() {
-            assertThatThrownBy(() -> new Resource("Room A", "a".repeat(10001)))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Description cannot exceed 10000 characters");
+                    .hasMessage("pricing cannot be null");
         }
     }
 
@@ -99,7 +75,7 @@ class ResourceTest {
         @Test
         @DisplayName("Should activate inactive resource")
         void shouldActivateInactiveResource() {
-            Resource resource = new Resource("Room", "description");
+            Resource resource = createValidResource();
             resource.deactivate();
 
             resource.activate();
@@ -110,7 +86,7 @@ class ResourceTest {
         @Test
         @DisplayName("Should not activate archived resource")
         void shouldNotActivateArchivedResource() {
-            Resource resource = new Resource("Room", "description");
+            Resource resource = createValidResource();
             resource.archive();
 
             assertThatThrownBy(resource::activate)
@@ -121,7 +97,7 @@ class ResourceTest {
         @Test
         @DisplayName("Should archive active resource")
         void shouldArchiveActiveResource() {
-            Resource resource = new Resource("Room", "description");
+            Resource resource = createValidResource();
 
             resource.archive();
 
@@ -131,7 +107,7 @@ class ResourceTest {
         @Test
         @DisplayName("Should not change archived resource twice")
         void shouldNotChangeArchivedResourceTwice() {
-            Resource resource = new Resource("Room", "description");
+            Resource resource = createValidResource();
             resource.archive();
 
             resource.archive();
@@ -141,36 +117,41 @@ class ResourceTest {
     }
 
     @Nested
-    @DisplayName("Rename")
-    class Rename {
+    @DisplayName("Update Details")
+    class UpdateDetails {
 
         @Test
-        @DisplayName("Should rename resource")
-        void shouldRenameResource() {
-            Resource resource = new Resource("Old Name", "description");
+        @DisplayName("Should update resource details")
+        void shouldUpdateResourceDetails() {
+            Resource resource = createValidResource();
+            ResourceDetails newDetails = new ResourceDetails("New Name", "New Description");
 
-            resource.rename("New Name");
+            resource.updateDetails(newDetails);
 
             assertThat(resource.getName()).isEqualTo("New Name");
+            assertThat(resource.getDescription()).isEqualTo("New Description");
         }
 
         @Test
-        @DisplayName("Should not rename to blank name")
-        void shouldNotRenameToBlankName() {
-            Resource resource = new Resource("Room", "description");
+        @DisplayName("Should throw exception when details is null in updateDetails")
+        void shouldThrowExceptionWhenUpdateDetailsNull() {
+            Resource resource = createValidResource();
 
-            assertThatThrownBy(() -> resource.rename("")).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> resource.updateDetails(null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("details cannot be null");
         }
 
         @Test
-        @DisplayName("should not rename or change description of archived resource")
-        void shouldNotChangeArchivedResource() {
-            Resource resource = new Resource("Room", "description");
+        @DisplayName("Should not update details of archived resource")
+        void shouldNotUpdateDetailsOfArchivedResource() {
+            Resource resource = createValidResource();
             resource.archive();
 
-            assertThatThrownBy(() -> resource.rename("New Name")).isInstanceOf(InvalidStatusTransitionException.class);
-            assertThatThrownBy(() -> resource.changeDescription("New description"))
-                    .isInstanceOf(InvalidStatusTransitionException.class);
+            ResourceDetails newDetails = new ResourceDetails("New Name", "New Description");
+            assertThatThrownBy(() -> resource.updateDetails(newDetails))
+                    .isInstanceOf(InvalidStatusTransitionException.class)
+                    .hasMessage("Archived resources cannot be changed");
         }
     }
 

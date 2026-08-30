@@ -17,5 +17,6 @@ public record CreateResourceRequest(
         @DecimalMin(value = "0.01", message = "Price per hour must be greater than zero")
         BigDecimal pricePerHour,
 
-        @NotBlank(message = "Currency cannot be blank") @Size(max = 3, message = "Currency must be 3 characters long")
+        @NotBlank(message = "Currency cannot be blank")
+        @Size(min = 3, max = 3, message = "Currency must be 3 characters long")
         String currency) {}

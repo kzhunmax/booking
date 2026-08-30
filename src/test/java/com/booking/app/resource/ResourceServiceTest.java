@@ -8,7 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.booking.app.resource.internal.domain.Resource;
+import com.booking.app.resource.internal.domain.ResourceDetails;
+import com.booking.app.resource.internal.domain.ResourcePricing;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +43,9 @@ class ResourceServiceTest {
 
     @BeforeEach
     void setUp() {
-        testResource = new Resource("Conference Room", "description");
+        testResource = new Resource(
+                new ResourceDetails("Conference Room", "description"),
+                new ResourcePricing(BigDecimal.valueOf(100), "USD"));
     }
 
     @Test
@@ -54,6 +59,8 @@ class ResourceServiceTest {
 
         assertThat(response.publicId()).isEqualTo(publicId);
         assertThat(response.name()).isEqualTo("Conference Room");
+        assertThat(response.pricePerHour()).isEqualTo(BigDecimal.valueOf(100));
+        assertThat(response.currency()).isEqualTo("USD");
         verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
     }
 
@@ -73,11 +80,15 @@ class ResourceServiceTest {
     void shouldCreateResourceWhenNameIsUnique() {
         String name = "New Room";
         String description = "New description";
+        BigDecimal pricePerHour = BigDecimal.valueOf(100);
+        String currency = "USD";
         when(resourceRepository.saveAndFlush(any(Resource.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ResourceResponse response = resourceService.createResource(name, description);
+        ResourceResponse response = resourceService.createResource(name, description, pricePerHour, currency);
 
         assertThat(response.name()).isEqualTo(name);
+        assertThat(response.pricePerHour()).isEqualTo(pricePerHour);
+        assertThat(response.currency()).isEqualTo("USD");
         verify(resourceRepository).saveAndFlush(any(Resource.class));
     }
 
@@ -88,7 +99,8 @@ class ResourceServiceTest {
         DataIntegrityViolationException ex = new DataIntegrityViolationException("Duplicate entry for 'name'", cause);
         when(resourceRepository.saveAndFlush(any(Resource.class))).thenThrow(ex);
 
-        assertThatThrownBy(() -> resourceService.createResource("New Room", "description"))
+        assertThatThrownBy(
+                        () -> resourceService.createResource("New Room", "description", BigDecimal.valueOf(100), "USD"))
                 .isInstanceOf(NameAlreadyTakenException.class);
     }
 
@@ -99,7 +111,8 @@ class ResourceServiceTest {
         DataIntegrityViolationException ex = new DataIntegrityViolationException("some error", cause);
         when(resourceRepository.saveAndFlush(any(Resource.class))).thenThrow(ex);
 
-        assertThatThrownBy(() -> resourceService.createResource("New Room", "description"))
+        assertThatThrownBy(
+                        () -> resourceService.createResource("New Room", "description", BigDecimal.valueOf(100), "USD"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -247,8 +260,10 @@ class ResourceServiceTest {
         when(resourceRepository.findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED))
                 .thenReturn(Optional.of(testResource));
 
-        resourceService.requireActive(publicId);
+        ResourceResponse response = resourceService.requireActive(publicId);
 
+        assertThat(response).isNotNull();
+        assertThat(response.publicId()).isEqualTo(publicId);
         verify(resourceRepository).findByPublicIdAndStatusNot(publicId, ResourceStatus.ARCHIVED);
     }
 
