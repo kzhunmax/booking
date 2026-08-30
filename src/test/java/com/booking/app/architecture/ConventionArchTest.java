@@ -6,6 +6,7 @@ import static com.booking.app.architecture.ApplicationModules.CONFIG_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.DOMAIN_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.EXCEPTION_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.INFRASTRUCTURE_PACKAGES;
+import static com.booking.app.architecture.ApplicationModules.PAYMENT_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.RESOURCE_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.ROOT_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.WEB_PACKAGES;
@@ -44,7 +45,7 @@ class ConventionArchTest {
             .that()
             .areAnnotatedWith(Service.class)
             .should()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE)
+            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
             .andShould()
             .haveSimpleNameEndingWith("Service")
             .because("the service is the only entry point a neighbouring module is allowed to call");
@@ -82,7 +83,7 @@ class ConventionArchTest {
             .should()
             .beRecords()
             .andShould()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE)
+            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
             .because("responses are part of the module API and must be immutable, entity-free carriers");
 
     @ArchTest
@@ -92,7 +93,7 @@ class ConventionArchTest {
             .should()
             .haveSimpleNameEndingWith("Exception")
             .andShould()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE)
+            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
             .because("callers of a module must be able to catch its failures without reaching into internals");
 
     @ArchTest

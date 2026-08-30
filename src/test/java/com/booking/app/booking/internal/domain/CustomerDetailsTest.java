@@ -51,6 +51,16 @@ class CustomerDetailsTest {
         }
 
         @Test
+        @DisplayName("Should throw exception when name exceeds 255 characters")
+        void shouldThrowWhenNameExceedsMaxLength() {
+            String name = "a".repeat(256);
+
+            assertThatThrownBy(() -> new CustomerDetails("email@example.com", name))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Name cannot exceed 255 characters");
+        }
+
+        @Test
         @DisplayName("Should throw exception when email is null")
         void shouldThrowWhenEmailIsNull() {
             assertThatThrownBy(() -> new CustomerDetails(null, "John Doe"))

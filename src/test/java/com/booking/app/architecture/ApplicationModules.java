@@ -18,6 +18,7 @@ final class ApplicationModules {
     static final String ROOT_PACKAGE = "com.booking.app";
     static final String BOOKING_API_PACKAGE = ROOT_PACKAGE + ".booking";
     static final String RESOURCE_API_PACKAGE = ROOT_PACKAGE + ".resource";
+    static final String PAYMENT_API_PACKAGE = ROOT_PACKAGE + ".payment";
     static final String COMMON_PACKAGE = ROOT_PACKAGE + ".common";
     static final String COMMON_WEB_PACKAGE = COMMON_PACKAGE + ".web";
     static final String CONFIG_PACKAGE = ROOT_PACKAGE + ".config";

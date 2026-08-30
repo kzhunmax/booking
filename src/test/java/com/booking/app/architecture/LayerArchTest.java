@@ -7,6 +7,7 @@ import static com.booking.app.architecture.ApplicationModules.CONFIG_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.DOMAIN_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.EXCEPTION_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.INFRASTRUCTURE_PACKAGES;
+import static com.booking.app.architecture.ApplicationModules.PAYMENT_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.RESOURCE_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.ROOT_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.WEB_PACKAGES;
@@ -39,7 +40,7 @@ class LayerArchTest {
             .layer(ERROR_HANDLING)
             .definedBy(EXCEPTION_PACKAGES, COMMON_WEB_PACKAGE)
             .layer(API)
-            .definedBy(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE)
+            .definedBy(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
             .layer(PERSISTENCE)
             .definedBy(INFRASTRUCTURE_PACKAGES)
             .layer(DOMAIN)
@@ -116,5 +117,6 @@ class LayerArchTest {
             .haveSimpleNameEndingWith("Repository")
             .should()
             .onlyHaveDependentClassesThat()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, INFRASTRUCTURE_PACKAGES);
+            .resideInAnyPackage(
+                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, INFRASTRUCTURE_PACKAGES);
 }
