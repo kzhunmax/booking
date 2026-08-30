@@ -22,6 +22,7 @@ import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.CancellationTooLateException;
 import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
 import com.booking.app.resource.ResourceNotFoundException;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -76,7 +77,9 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.customerName").value("John Doe"))
                 .andExpect(jsonPath("$.startsAt").value(STARTS_AT.toString()))
                 .andExpect(jsonPath("$.endsAt").value(ENDS_AT.toString()))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.totalAmount").value(100.0))
+                .andExpect(jsonPath("$.currency").value("USD"));
 
         verify(bookingService).create(resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT);
     }
@@ -392,6 +395,14 @@ class BookingControllerTest {
 
     private static BookingResponse bookingResponse(UUID publicId, UUID resourceId, BookingStatus status) {
         return new BookingResponse(
-                publicId, resourceId, "customer@example.com", "John Doe", STARTS_AT, ENDS_AT, status);
+                publicId,
+                resourceId,
+                "customer@example.com",
+                "John Doe",
+                STARTS_AT,
+                ENDS_AT,
+                status,
+                BigDecimal.valueOf(100.0),
+                "USD");
     }
 }

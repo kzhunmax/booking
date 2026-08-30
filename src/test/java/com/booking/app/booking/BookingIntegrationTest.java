@@ -8,6 +8,7 @@ import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceStatus;
 import com.booking.app.resource.internal.web.CreateResourceRequest;
 import com.booking.app.resource.internal.web.UpdateStatusRequest;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -37,6 +38,9 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 @Tag("integration")
 class BookingIntegrationTest {
 
+    private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(50.0);
+    private static final String DEFAULT_CURRENCY = "USD";
+
     @Autowired
     private RestTestClient restTestClient;
 
@@ -62,6 +66,8 @@ class BookingIntegrationTest {
         assertThat(fetched.resourceId()).isEqualTo(resource.publicId());
         assertThat(fetched.status()).isEqualTo(BookingStatus.PENDING);
         assertThat(fetched.customerEmail()).isEqualTo("customer@example.com");
+        assertThat(fetched.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(50.00));
+        assertThat(fetched.currency()).isEqualTo("USD");
     }
 
     @Test
@@ -178,7 +184,8 @@ class BookingIntegrationTest {
                 .post()
                 .uri("/api/resources")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreateResourceRequest("room-" + UUID.randomUUID(), "integration room"))
+                .body(new CreateResourceRequest(
+                        "room-" + UUID.randomUUID(), "integration room", DEFAULT_PRICE, DEFAULT_CURRENCY))
                 .exchange()
                 .expectStatus()
                 .isCreated()

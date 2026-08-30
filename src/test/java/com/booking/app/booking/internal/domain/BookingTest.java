@@ -7,6 +7,7 @@ import com.booking.app.booking.BookingAlreadyCompletedException;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.CancellationTooLateException;
 import com.booking.app.booking.InvalidStatusTransitionException;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
@@ -24,6 +25,7 @@ class BookingTest {
     private UUID resourcePublicId;
     private CustomerDetails customer;
     private BookingInterval interval;
+    private BookingPricing pricing;
     private Instant startsAt;
     private Instant endsAt;
 
@@ -34,10 +36,11 @@ class BookingTest {
         endsAt = BASE_TIME.plus(Duration.ofHours(5)); // 15:00
         customer = new CustomerDetails("customer@example.com", "John Doe");
         interval = new BookingInterval(startsAt, endsAt);
+        pricing = new BookingPricing(BigDecimal.valueOf(100.00), "USD");
     }
 
     private Booking createValidBooking() {
-        return new Booking(resourcePublicId, customer, interval, BASE_TIME);
+        return new Booking(resourcePublicId, customer, interval, BASE_TIME, pricing);
     }
 
     @Nested
@@ -56,13 +59,15 @@ class BookingTest {
             assertThat(booking.getStartsAt()).isEqualTo(startsAt);
             assertThat(booking.getEndsAt()).isEqualTo(endsAt);
             assertThat(booking.getStatus()).isEqualTo(BookingStatus.PENDING);
+            assertThat(booking.getTotalAmount()).isEqualTo(BigDecimal.valueOf(100.00));
+            assertThat(booking.getCurrency()).isEqualTo("USD");
             assertThat(booking.getAuditInfo()).isNotNull();
         }
 
         @Test
         @DisplayName("Should throw exception when resourcePublicId is null")
         void shouldThrowExceptionForNullResourcePublicId() {
-            assertThatThrownBy(() -> new Booking(null, customer, interval, BASE_TIME))
+            assertThatThrownBy(() -> new Booking(null, customer, interval, BASE_TIME, pricing))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("resourcePublicId cannot be null");
         }
@@ -70,7 +75,7 @@ class BookingTest {
         @Test
         @DisplayName("Should throw exception when customer is null")
         void shouldThrowExceptionForNullCustomer() {
-            assertThatThrownBy(() -> new Booking(resourcePublicId, null, interval, BASE_TIME))
+            assertThatThrownBy(() -> new Booking(resourcePublicId, null, interval, BASE_TIME, pricing))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("customer cannot be null");
         }
@@ -78,7 +83,7 @@ class BookingTest {
         @Test
         @DisplayName("Should throw exception when interval is null")
         void shouldThrowExceptionForNullInterval() {
-            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, null, BASE_TIME))
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, null, BASE_TIME, pricing))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("interval cannot be null");
         }
@@ -86,9 +91,17 @@ class BookingTest {
         @Test
         @DisplayName("Should throw exception when now is null")
         void shouldThrowExceptionForNullNow() {
-            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, interval, null))
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, interval, null, pricing))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("now cannot be null");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when pricing is null")
+        void shouldThrowExceptionForNullPricing() {
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, interval, BASE_TIME, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("pricing cannot be null");
         }
 
         @Test
@@ -97,7 +110,7 @@ class BookingTest {
             BookingInterval pastInterval =
                     new BookingInterval(BASE_TIME.minus(Duration.ofHours(2)), BASE_TIME.minus(Duration.ofHours(1)));
 
-            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, pastInterval, BASE_TIME))
+            assertThatThrownBy(() -> new Booking(resourcePublicId, customer, pastInterval, BASE_TIME, pricing))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("startsAt must be in the future");
         }

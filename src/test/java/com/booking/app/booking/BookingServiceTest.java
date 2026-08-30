@@ -11,11 +11,15 @@ import static org.mockito.Mockito.when;
 
 import com.booking.app.booking.internal.domain.Booking;
 import com.booking.app.booking.internal.domain.BookingInterval;
+import com.booking.app.booking.internal.domain.BookingPricing;
 import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.booking.internal.infrastructure.BookingRepository;
 import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
 import com.booking.app.resource.ResourceNotFoundException;
+import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceService;
+import com.booking.app.resource.ResourceStatus;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -69,6 +73,9 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should create booking in PENDING status when resource is active")
     void shouldCreateBookingWhenResourceIsActive() {
+        ResourceResponse resourceResponse = new ResourceResponse(
+                resourceId, "Conference Room", "desc", ResourceStatus.ACTIVE, BigDecimal.valueOf(100.00), "USD");
+        when(resourceService.requireActive(resourceId)).thenReturn(resourceResponse);
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         BookingResponse response = bookingService.create(resourceId, CUSTOMER_EMAIL, CUSTOMER_NAME, STARTS_AT, ENDS_AT);
@@ -80,6 +87,8 @@ class BookingServiceTest {
         assertThat(response.startsAt()).isEqualTo(STARTS_AT);
         assertThat(response.endsAt()).isEqualTo(ENDS_AT);
         assertThat(response.status()).isEqualTo(BookingStatus.PENDING);
+        assertThat(response.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(100.00));
+        assertThat(response.currency()).isEqualTo("USD");
         verify(resourceService).requireActive(resourceId);
         verify(bookingRepository).saveAndFlush(any(Booking.class));
     }
@@ -109,6 +118,9 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should throw BookingSlotAlreadyTakenException when overlapping constraint is violated")
     void shouldThrowBookingSlotAlreadyTakenExceptionWhenSlotOverlaps() {
+        ResourceResponse resourceResponse = new ResourceResponse(
+                resourceId, "Conference Room", "desc", ResourceStatus.ACTIVE, BigDecimal.valueOf(100.00), "USD");
+        when(resourceService.requireActive(resourceId)).thenReturn(resourceResponse);
         Throwable cause = new RuntimeException("no_overlapping_bookings");
         DataIntegrityViolationException ex = new DataIntegrityViolationException("overlap", cause);
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenThrow(ex);
@@ -120,6 +132,9 @@ class BookingServiceTest {
     @Test
     @DisplayName("Should rethrow DataIntegrityViolationException for unexpected constraint")
     void shouldRethrowDataIntegrityViolationExceptionForUnexpectedConstraint() {
+        ResourceResponse resourceResponse = new ResourceResponse(
+                resourceId, "Conference Room", "desc", ResourceStatus.ACTIVE, BigDecimal.valueOf(100.00), "USD");
+        when(resourceService.requireActive(resourceId)).thenReturn(resourceResponse);
         Throwable cause = new RuntimeException("some cause");
         DataIntegrityViolationException ex = new DataIntegrityViolationException("some error", cause);
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenThrow(ex);
@@ -138,6 +153,8 @@ class BookingServiceTest {
 
         assertThat(response.publicId()).isEqualTo(publicId);
         assertThat(response.status()).isEqualTo(BookingStatus.PENDING);
+        assertThat(response.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(100.00));
+        assertThat(response.currency()).isEqualTo("USD");
         verify(bookingRepository).findByPublicId(publicId);
     }
 
@@ -165,6 +182,29 @@ class BookingServiceTest {
         assertThat(result.getTotalElements()).isOne();
         assertThat(result.getContent().getFirst().status()).isEqualTo(status);
         verify(bookingRepository).findAll(anyBookingSpec(), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("Should confirm pending booking successfully")
+    void shouldConfirmPendingBookingSuccessfully() {
+        UUID publicId = testBooking.getPublicId();
+        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.of(testBooking));
+        when(bookingRepository.saveAndFlush(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BookingResponse response = bookingService.confirm(publicId);
+
+        assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
+        verify(bookingRepository).saveAndFlush(testBooking);
+    }
+
+    @Test
+    @DisplayName("Should throw BookingNotFoundException when confirming a missing booking")
+    void shouldThrowWhenConfirmingMissingBooking() {
+        UUID publicId = UUID.randomUUID();
+        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.confirm(publicId)).isInstanceOf(BookingNotFoundException.class);
+        verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
     }
 
     @ParameterizedTest
@@ -340,6 +380,7 @@ class BookingServiceTest {
                 resourceId,
                 new CustomerDetails(CUSTOMER_EMAIL, CUSTOMER_NAME),
                 new BookingInterval(startsAt, endsAt),
-                NOW);
+                NOW,
+                new BookingPricing(BigDecimal.valueOf(100.00), "USD"));
     }
 }

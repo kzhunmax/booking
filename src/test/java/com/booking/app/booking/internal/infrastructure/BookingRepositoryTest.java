@@ -7,8 +7,10 @@ import com.booking.app.TestcontainersConfiguration;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.internal.domain.Booking;
 import com.booking.app.booking.internal.domain.BookingInterval;
+import com.booking.app.booking.internal.domain.BookingPricing;
 import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.config.JpaConfig;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +35,8 @@ import org.springframework.data.domain.Sort;
 class BookingRepositoryTest {
 
     private static final Instant BASE = Instant.parse("2026-09-01T10:00:00Z");
+    private static final BigDecimal DEFAULT_AMOUNT = BigDecimal.valueOf(100.0);
+    private static final String DEFAULT_CURRENCY = "USD";
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -50,6 +54,8 @@ class BookingRepositoryTest {
         assertThat(found.get().getResourcePublicId()).isEqualTo(resourceId);
         assertThat(found.get().getCustomerEmail()).isEqualTo("customer@example.com");
         assertThat(found.get().getStatus()).isEqualTo(BookingStatus.PENDING);
+        assertThat(found.get().getTotalAmount()).isEqualByComparingTo(DEFAULT_AMOUNT);
+        assertThat(found.get().getCurrency()).isEqualTo("USD");
     }
 
     @Test
@@ -159,6 +165,7 @@ class BookingRepositoryTest {
                 resourceId,
                 new CustomerDetails("customer@example.com", "John Doe"),
                 new BookingInterval(startsAt, endsAt),
-                now);
+                now,
+                new BookingPricing(DEFAULT_AMOUNT, DEFAULT_CURRENCY));
     }
 }
