@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.payment.BookingNotPendingException;
 import com.booking.app.payment.IdempotencyConflictException;
+import com.booking.app.payment.InvalidStatusTransitionException;
 import com.booking.app.payment.PaymentExecution;
 import com.booking.app.payment.PaymentNotFoundException;
 import com.booking.app.payment.PaymentResponse;
@@ -184,6 +185,27 @@ class PaymentControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Booking Not Pending"))
                 .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    @DisplayName("POST /api/payments - returns 422 when payment status transition is invalid")
+    void shouldReturnUnprocessableWhenStatusTransitionIsInvalid() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID idempotencyKey = UUID.randomUUID();
+        CreatePaymentRequest request = new CreatePaymentRequest(bookingId, userId);
+
+        when(paymentService.create(bookingId, userId, idempotencyKey))
+                .thenThrow(new InvalidStatusTransitionException("Only SUCCEEDED payments can be refunded"));
+
+        mockMvc.perform(post("/api/payments")
+                        .header("Idempotency-Key", idempotencyKey.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.title").value("Payment Status Invalid Transition"))
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.detail").value("Only SUCCEEDED payments can be refunded"));
     }
 
     @Test
