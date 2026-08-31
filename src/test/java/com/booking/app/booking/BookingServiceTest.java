@@ -130,6 +130,20 @@ class BookingServiceTest {
     }
 
     @Test
+    @DisplayName("Should rethrow DataIntegrityViolationException when overlap constraint message is null")
+    void shouldRethrowDataIntegrityViolationExceptionWhenOverlapConstraintMessageIsNull() {
+        ResourceResponse resourceResponse = new ResourceResponse(
+                resourceId, "Conference Room", "desc", ResourceStatus.ACTIVE, BigDecimal.valueOf(100.00), "USD");
+        when(resourceService.requireActive(resourceId)).thenReturn(resourceResponse);
+        Throwable cause = new RuntimeException((String) null);
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("some error", cause);
+        when(bookingRepository.saveAndFlush(any(Booking.class))).thenThrow(ex);
+
+        assertThatThrownBy(() -> bookingService.create(resourceId, CUSTOMER_EMAIL, CUSTOMER_NAME, STARTS_AT, ENDS_AT))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     @DisplayName("Should rethrow DataIntegrityViolationException for unexpected constraint")
     void shouldRethrowDataIntegrityViolationExceptionForUnexpectedConstraint() {
         ResourceResponse resourceResponse = new ResourceResponse(
@@ -344,6 +358,21 @@ class BookingServiceTest {
         AvailableSlotsResponse response = bookingService.findAvailableSlots(resourceId, past);
 
         assertThat(response.slots()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should return no trailing slot when cursor reaches day end")
+    void shouldNotAddTrailingSlotWhenCursorEqualsDayEnd() {
+        LocalDate date = LocalDate.of(2026, 9, 2);
+        Instant busyStart = Instant.parse("2026-09-02T23:00:00Z");
+        Instant dayEnd = Instant.parse("2026-09-03T00:00:00Z");
+        Booking busy = newBooking(resourceId, busyStart, dayEnd);
+        when(bookingRepository.findAll(anyBookingSpec(), any(Sort.class))).thenReturn(List.of(busy));
+
+        AvailableSlotsResponse response = bookingService.findAvailableSlots(resourceId, date);
+
+        assertThat(response.slots())
+                .containsExactly(new AvailableSlotsResponse.TimeSlot(Instant.parse("2026-09-02T00:00:00Z"), busyStart));
     }
 
     @Test
