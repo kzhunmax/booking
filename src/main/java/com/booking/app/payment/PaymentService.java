@@ -46,7 +46,7 @@ public class PaymentService {
         Payment payment = createAndChargePayment(booking, userId, idempotencyKey);
         Payment savedPayment = persist(payment);
         log.info("Processed payment: bookingId={}, userId={}, idempotencyKey={}", bookingId, userId, idempotencyKey);
-        boolean isNew = (savedPayment == payment);
+        boolean isNew = savedPayment.equals(payment);
         return new PaymentExecution(PaymentMapper.toResponse(savedPayment), isNew);
     }
 
