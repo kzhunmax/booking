@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -179,6 +180,24 @@ class PaymentServiceTest {
 
         verify(paymentGateway, never()).charge(any(), any());
         verify(paymentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("Should throw IdempotencyConflictException when save conflicts and idempotency fetch returns empty")
+    void shouldThrowConflictWhenPersistConflictCannotRefetchExistingPayment() {
+        when(paymentRepository.findByIdempotencyKey(idempotencyKey))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.empty());
+        when(bookingService.findByPublicId(bookingId)).thenReturn(pendingBooking);
+        when(paymentGateway.charge(AMOUNT, CURRENCY)).thenReturn(new PaymentResult(true, "gw_success_123"));
+        when(paymentRepository.saveAndFlush(any(Payment.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+
+        assertThatThrownBy(() -> paymentService.create(bookingId, userId, idempotencyKey))
+                .isInstanceOf(IdempotencyConflictException.class)
+                .hasMessage("Idempotency key present in DB but fetch failed after conflict");
+
+        verify(bookingService, never()).confirm(any());
     }
 
     @Test
