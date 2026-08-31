@@ -117,6 +117,18 @@ class ResourceServiceTest {
     }
 
     @Test
+    @DisplayName("Should rethrow DataIntegrityViolationException when unique name message is null")
+    void shouldRethrowDataIntegrityViolationExceptionWhenUniqueNameMessageIsNull() {
+        Throwable cause = new RuntimeException((String) null);
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("some error", cause);
+        when(resourceRepository.saveAndFlush(any(Resource.class))).thenThrow(ex);
+
+        assertThatThrownBy(
+                        () -> resourceService.createResource("New Room", "description", BigDecimal.valueOf(100), "USD"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     @DisplayName("Should return pageable resources")
     void shouldReturnPageableResources() {
         ResourceStatus status = ResourceStatus.ACTIVE;
