@@ -7,6 +7,7 @@ spring:
       - classpath:db/migration/resources
       - classpath:db/migration/booking
       - classpath:db/migration/payments
+      - classpath:db/migration/notifications
   jpa:
     hibernate:
       ddl-auto: none

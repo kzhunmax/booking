@@ -22,7 +22,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table
+@Table(name = "notifications")
 @EntityListeners(AuditingEntityListener.class)
 public class Notification implements Identifiable {
 
@@ -77,7 +77,8 @@ public class Notification implements Identifiable {
         this.status = NotificationStatus.PENDING;
     }
 
-    public void markAsSent() {
+    public void markAsSent(Instant sentAt) {
+        Require.notNull(sentAt, "sentAt cannot be null");
         if (this.status == NotificationStatus.FAILED) {
             throw new InvalidStatusTransitionException("Cannot send failed notification");
         }
@@ -85,7 +86,7 @@ public class Notification implements Identifiable {
             return;
         }
         this.status = NotificationStatus.SENT;
-        this.sentAt = Instant.now();
+        this.sentAt = sentAt;
     }
 
     public void markAsFailed() {
