@@ -2,10 +2,10 @@ plugins {
     java
     checkstyle
     jacoco
-    id("org.springframework.boot") version "4.1.1"
-    id("io.spring.dependency-management") version "1.1.7"
-    id("com.diffplug.spotless") version "8.10.0"
-    id("net.ltgt.errorprone") version "5.1.0"
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.errorprone)
 }
 
 group = "com.booking"
@@ -13,12 +13,12 @@ version = "0.0.1"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(libs.versions.java.get())
     }
 }
 
 checkstyle {
-    toolVersion = "14.0.0"
+    toolVersion = libs.versions.checkstyle.get()
     configDirectory = file("config")
     maxWarnings = 0
 }
@@ -29,7 +29,7 @@ spotless {
             "src/*/java/**/*.java",
         )
         targetExclude("**/build/generated/**")
-        palantirJavaFormat("2.97.0")
+        palantirJavaFormat(libs.versions.palantir.java.format.get())
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
@@ -37,7 +37,7 @@ spotless {
 }
 
 jacoco {
-    toolVersion = "0.8.15"
+    toolVersion = libs.versions.jacoco.get()
 }
 
 repositories {
@@ -45,27 +45,29 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-flyway")
-//    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.springframework.boot:spring-boot-starter-mail")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("org.postgresql:postgresql")
-    testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
-//    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
-    testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("nl.jqno.equalsverifier:equalsverifier:4.5.1")
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    errorprone("com.google.errorprone:error_prone_core:2.50.0")
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.boot.starter.webmvc)
+    implementation(libs.flyway.database.postgresql)
+    implementation(libs.spring.boot.starter.mail)
+    implementation(libs.jjwt.api)
+    developmentOnly(libs.spring.boot.devtools)
+    runtimeOnly(libs.postgresql)
+    runtimeOnly(libs.jjwt.jackson)
+    testImplementation(libs.spring.boot.starter.data.jpa.test)
+    testImplementation(libs.spring.boot.starter.flyway.test)
+    testImplementation(libs.spring.boot.starter.security.test)
+    testImplementation(libs.spring.boot.starter.validation.test)
+    testImplementation(libs.spring.boot.starter.webmvc.test)
+    testImplementation(libs.spring.boot.testcontainers)
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.equalsverifier)
+    testImplementation(libs.archunit.junit5)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    errorprone(libs.errorprone.core)
 }
 
 tasks.named<Test>("test") {
