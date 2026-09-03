@@ -53,7 +53,8 @@ public class PaymentController {
     @GetMapping
     public Page<PaymentResponse> getPaymentAttempts(
             @RequestParam(value = "bookingId") UUID bookingId,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "auditInfo.createdAt", direction = Sort.Direction.ASC)
+                    Pageable pageable) {
         return paymentService.findAllPayments(bookingId, pageable);
     }
 }

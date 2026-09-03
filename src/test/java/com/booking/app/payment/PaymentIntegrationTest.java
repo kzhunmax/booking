@@ -120,6 +120,60 @@ class PaymentIntegrationTest {
 
         assertThat(updatedBooking).isNotNull();
         assertThat(updatedBooking.status()).isEqualTo(BookingStatus.CONFIRMED);
+
+        PaymentResponse fetched = restTestClient
+                .get()
+                .uri("/api/payments/{publicId}", payment.publicId())
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(PaymentResponse.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(fetched).isNotNull();
+        assertThat(fetched.publicId()).isEqualTo(payment.publicId());
+        assertThat(fetched.status()).isEqualTo(PaymentStatus.SUCCEEDED);
+    }
+
+    @Test
+    @DisplayName("GET /api/payments?bookingId= lists payment attempts for the booking")
+    void shouldListPaymentAttemptsForBooking() {
+        ResourceResponse resource = createResource();
+        ZonedDateTime slot = tomorrowAt(11);
+        BookingResponse booking = createBooking(resource.publicId(), slot, slot.plusHours(1));
+        UUID userId = UUID.randomUUID();
+        PaymentResponse created =
+                postPayment(booking.publicId(), userId, UUID.randomUUID()).getResponseBody();
+        assertThat(created).isNotNull();
+
+        restTestClient
+                .get()
+                .uri("/api/payments?bookingId={bookingId}", booking.publicId())
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.content[0].publicId")
+                .isEqualTo(created.publicId().toString())
+                .jsonPath("$.content[0].bookingId")
+                .isEqualTo(booking.publicId().toString())
+                .jsonPath("$.totalElements")
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("GET /api/payments/{publicId} for a missing payment yields 404")
+    void shouldReturnNotFoundWhenPaymentDoesNotExist() {
+        restTestClient
+                .get()
+                .uri("/api/payments/{publicId}", UUID.randomUUID())
+                .exchange()
+                .expectStatus()
+                .isNotFound()
+                .expectBody()
+                .jsonPath("$.title")
+                .isEqualTo("Payment Not Found");
     }
 
     @Test

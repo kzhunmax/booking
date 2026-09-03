@@ -102,6 +102,7 @@ class PaymentRepositoryTest {
         Payment saved = paymentRepository.saveAndFlush(payment);
 
         assertThat(saved.getVersion()).isNotNull();
+        assertThat(saved.getPublicId()).isNotNull();
         assertThat(saved.getAuditInfo().getCreatedAt()).isNotNull();
         assertThat(saved.getAuditInfo().getUpdatedAt()).isNotNull();
     }

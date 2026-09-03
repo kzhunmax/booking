@@ -251,6 +251,30 @@ class PaymentTest {
                     .isInstanceOf(InvalidStatusTransitionException.class)
                     .hasMessage("Only SUCCEEDED payments can be refunded");
         }
+
+        @Test
+        @DisplayName("Should not allow markAsSucceeded on REFUNDED payment")
+        void shouldNotAllowSucceedOnRefundedPayment() {
+            Payment payment = createValidPayment();
+            payment.markAsSucceeded("success_ref");
+            payment.refund();
+
+            assertThatThrownBy(() -> payment.markAsSucceeded("new_ref"))
+                    .isInstanceOf(InvalidStatusTransitionException.class)
+                    .hasMessage("Cannot succeed a payment with status REFUNDED");
+        }
+
+        @Test
+        @DisplayName("Should not allow markAsFailed on REFUNDED payment")
+        void shouldNotAllowFailOnRefundedPayment() {
+            Payment payment = createValidPayment();
+            payment.markAsSucceeded("success_ref");
+            payment.refund();
+
+            assertThatThrownBy(() -> payment.markAsFailed("fail_ref"))
+                    .isInstanceOf(InvalidStatusTransitionException.class)
+                    .hasMessage("Cannot fail a payment with status REFUNDED");
+        }
     }
 
     @Nested

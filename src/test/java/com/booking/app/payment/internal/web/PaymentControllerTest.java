@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.booking.app.booking.BookingNotFoundException;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.payment.BookingNotPendingException;
 import com.booking.app.payment.IdempotencyConflictException;
@@ -184,7 +185,64 @@ class PaymentControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.title").value("Booking Not Pending"))
-                .andExpect(jsonPath("$.status").value(409));
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail")
+                        .value("Booking %s status is CONFIRMED, expected PENDING".formatted(bookingId)));
+    }
+
+    @Test
+    @DisplayName("POST /api/payments - returns 404 when booking does not exist")
+    void shouldReturnNotFoundWhenCreatingPaymentForMissingBooking() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID idempotencyKey = UUID.randomUUID();
+        CreatePaymentRequest request = new CreatePaymentRequest(bookingId, userId);
+
+        when(paymentService.create(bookingId, userId, idempotencyKey))
+                .thenThrow(new BookingNotFoundException(bookingId));
+
+        mockMvc.perform(post("/api/payments")
+                        .header("Idempotency-Key", idempotencyKey.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Booking Not Found"))
+                .andExpect(jsonPath("$.detail").value("Booking with id %s not found".formatted(bookingId)));
+    }
+
+    @Test
+    @DisplayName("POST /api/payments - returns 400 when userId is null")
+    void shouldReturnBadRequestWhenUserIdIsNull() throws Exception {
+        UUID idempotencyKey = UUID.randomUUID();
+        String json = "{\"bookingId\":\"" + UUID.randomUUID() + "\",\"userId\":null}";
+
+        mockMvc.perform(post("/api/payments")
+                        .header("Idempotency-Key", idempotencyKey.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
+
+        verify(paymentService, never()).create(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("POST /api/payments - returns 400 when domain rejects the argument")
+    void shouldReturnBadRequestWhenServiceThrowsIllegalArgumentException() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID idempotencyKey = UUID.randomUUID();
+        CreatePaymentRequest request = new CreatePaymentRequest(bookingId, userId);
+
+        when(paymentService.create(bookingId, userId, idempotencyKey))
+                .thenThrow(new IllegalArgumentException("amount must be greater than zero"));
+
+        mockMvc.perform(post("/api/payments")
+                        .header("Idempotency-Key", idempotencyKey.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid Argument"))
+                .andExpect(jsonPath("$.detail").value("amount must be greater than zero"));
     }
 
     @Test
@@ -266,7 +324,8 @@ class PaymentControllerTest {
         mockMvc.perform(get("/api/payments/{publicId}", publicId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Payment Not Found"))
-                .andExpect(jsonPath("$.status").value(404));
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value("Payment with id %s not found".formatted(publicId)));
 
         verify(paymentService).findByPublicId(publicId);
     }
@@ -304,6 +363,18 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(1));
 
         verify(paymentService).findAllPayments(eq(bookingId), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("GET /api/payments - returns 200 OK with empty page when no payments match")
+    void shouldReturnEmptyPageWhenNoPaymentsMatch() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        when(paymentService.findAllPayments(eq(bookingId), any(Pageable.class))).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/payments").param("bookingId", bookingId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test

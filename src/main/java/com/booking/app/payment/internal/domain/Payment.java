@@ -18,6 +18,7 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -80,7 +81,7 @@ public class Payment implements Identifiable {
         this.bookingId = bookingId;
         this.userId = userId;
         this.amount = amount;
-        this.currency = currency.strip().toUpperCase();
+        this.currency = currency.strip().toUpperCase(Locale.ROOT);
         this.idempotencyKey = idempotencyKey;
         this.status = PaymentStatus.PENDING;
     }

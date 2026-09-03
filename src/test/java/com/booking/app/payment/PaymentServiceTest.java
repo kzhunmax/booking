@@ -12,9 +12,11 @@ import com.booking.app.booking.BookingNotFoundException;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
 import com.booking.app.booking.BookingStatus;
+import com.booking.app.payment.internal.application.DefaultPaymentService;
 import com.booking.app.payment.internal.domain.Payment;
 import com.booking.app.payment.internal.infrastructure.PaymentRepository;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +37,12 @@ import org.springframework.data.domain.Pageable;
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
+    private static final Instant NOW = Instant.parse("2026-09-01T10:00:00Z");
+    private static final Instant STARTS_AT = NOW.plus(Duration.ofHours(4));
+    private static final Instant ENDS_AT = NOW.plus(Duration.ofHours(5));
     private static final BigDecimal AMOUNT = BigDecimal.valueOf(150.00);
     private static final String CURRENCY = "USD";
+    private static final String UNIQUE_IDEMPOTENCY_CONSTRAINT = "uc_payments_idempotency_key";
 
     @Mock
     private PaymentRepository paymentRepository;
@@ -48,7 +54,7 @@ class PaymentServiceTest {
     private PaymentGateway paymentGateway;
 
     @InjectMocks
-    private PaymentService paymentService;
+    private DefaultPaymentService paymentService;
 
     private UUID bookingId;
     private UUID userId;
@@ -65,8 +71,8 @@ class PaymentServiceTest {
                 UUID.randomUUID(),
                 "user@example.com",
                 "John Doe",
-                Instant.now().plusSeconds(3600),
-                Instant.now().plusSeconds(7200),
+                STARTS_AT,
+                ENDS_AT,
                 BookingStatus.PENDING,
                 AMOUNT,
                 CURRENCY);
@@ -152,9 +158,9 @@ class PaymentServiceTest {
                 bookingId,
                 UUID.randomUUID(),
                 "user@example.com",
-                "John",
-                Instant.now().plusSeconds(3600),
-                Instant.now().plusSeconds(7200),
+                "John Doe",
+                STARTS_AT,
+                ENDS_AT,
                 BookingStatus.CONFIRMED,
                 AMOUNT,
                 CURRENCY);
@@ -183,6 +189,26 @@ class PaymentServiceTest {
     }
 
     @Test
+    @DisplayName("Should return existing payment with isNew = false when save conflicts and payment is refetched")
+    void shouldReturnExistingPaymentWhenPersistConflictsAndRefetchSucceeds() {
+        Payment existingPayment = new Payment(bookingId, userId, AMOUNT, CURRENCY, idempotencyKey);
+        existingPayment.markAsSucceeded("gw_existing_ref");
+        when(paymentRepository.findByIdempotencyKey(idempotencyKey))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(existingPayment));
+        when(bookingService.findByPublicId(bookingId)).thenReturn(pendingBooking);
+        when(paymentGateway.charge(AMOUNT, CURRENCY)).thenReturn(new PaymentResult(true, "gw_success_123"));
+        when(paymentRepository.saveAndFlush(any(Payment.class))).thenThrow(idempotencyKeyViolation());
+
+        PaymentExecution execution = paymentService.create(bookingId, userId, idempotencyKey);
+
+        assertThat(execution.isNew()).isFalse();
+        assertThat(execution.response().publicId()).isEqualTo(existingPayment.getPublicId());
+        assertThat(execution.response().status()).isEqualTo(PaymentStatus.SUCCEEDED);
+        verify(bookingService, never()).confirm(any());
+    }
+
+    @Test
     @DisplayName("Should throw IdempotencyConflictException when save conflicts and idempotency fetch returns empty")
     void shouldThrowConflictWhenPersistConflictCannotRefetchExistingPayment() {
         when(paymentRepository.findByIdempotencyKey(idempotencyKey))
@@ -190,13 +216,42 @@ class PaymentServiceTest {
                 .thenReturn(Optional.empty());
         when(bookingService.findByPublicId(bookingId)).thenReturn(pendingBooking);
         when(paymentGateway.charge(AMOUNT, CURRENCY)).thenReturn(new PaymentResult(true, "gw_success_123"));
-        when(paymentRepository.saveAndFlush(any(Payment.class)))
-                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+        when(paymentRepository.saveAndFlush(any(Payment.class))).thenThrow(idempotencyKeyViolation());
 
         assertThatThrownBy(() -> paymentService.create(bookingId, userId, idempotencyKey))
                 .isInstanceOf(IdempotencyConflictException.class)
                 .hasMessage("Idempotency key present in DB but fetch failed after conflict");
 
+        verify(bookingService, never()).confirm(any());
+    }
+
+    @Test
+    @DisplayName("Should rethrow DataIntegrityViolationException for unexpected constraint")
+    void shouldRethrowDataIntegrityViolationExceptionForUnexpectedConstraint() {
+        when(paymentRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(bookingService.findByPublicId(bookingId)).thenReturn(pendingBooking);
+        when(paymentGateway.charge(AMOUNT, CURRENCY)).thenReturn(new PaymentResult(true, "gw_success_123"));
+        Throwable cause = new RuntimeException("some cause");
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("some error", cause);
+        when(paymentRepository.saveAndFlush(any(Payment.class))).thenThrow(ex);
+
+        assertThatThrownBy(() -> paymentService.create(bookingId, userId, idempotencyKey))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        verify(bookingService, never()).confirm(any());
+    }
+
+    @Test
+    @DisplayName("Should rethrow DataIntegrityViolationException when unique constraint message is null")
+    void shouldRethrowDataIntegrityViolationExceptionWhenUniqueConstraintMessageIsNull() {
+        when(paymentRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(bookingService.findByPublicId(bookingId)).thenReturn(pendingBooking);
+        when(paymentGateway.charge(AMOUNT, CURRENCY)).thenReturn(new PaymentResult(true, "gw_success_123"));
+        Throwable cause = new RuntimeException((String) null);
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("some error", cause);
+        when(paymentRepository.saveAndFlush(any(Payment.class))).thenThrow(ex);
+
+        assertThatThrownBy(() -> paymentService.create(bookingId, userId, idempotencyKey))
+                .isInstanceOf(DataIntegrityViolationException.class);
         verify(bookingService, never()).confirm(any());
     }
 
@@ -238,5 +293,10 @@ class PaymentServiceTest {
         assertThat(result.getTotalElements()).isOne();
         assertThat(result.getContent().getFirst().bookingId()).isEqualTo(bookingId);
         verify(paymentRepository).findByBookingId(bookingId, pageable);
+    }
+
+    private static DataIntegrityViolationException idempotencyKeyViolation() {
+        Throwable cause = new RuntimeException(UNIQUE_IDEMPOTENCY_CONSTRAINT);
+        return new DataIntegrityViolationException("duplicate key value violates unique constraint", cause);
     }
 }
