@@ -9,11 +9,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.booking.app.booking.internal.application.DefaultBookingService;
 import com.booking.app.booking.internal.domain.Booking;
 import com.booking.app.booking.internal.domain.BookingInterval;
 import com.booking.app.booking.internal.domain.BookingPricing;
 import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.booking.internal.infrastructure.BookingRepository;
+import com.booking.app.notification.NotificationService;
 import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
 import com.booking.app.resource.ResourceNotFoundException;
 import com.booking.app.resource.ResourceResponse;
@@ -59,13 +61,17 @@ class BookingServiceTest {
     @Mock
     private ResourceService resourceService;
 
+    @Mock
+    private NotificationService notificationService;
+
     private BookingService bookingService;
     private UUID resourceId;
     private Booking testBooking;
 
     @BeforeEach
     void setUp() {
-        bookingService = new BookingService(bookingRepository, Clock.fixed(NOW, ZoneOffset.UTC), resourceService);
+        bookingService = new DefaultBookingService(
+                bookingRepository, Clock.fixed(NOW, ZoneOffset.UTC), resourceService, notificationService);
         resourceId = UUID.randomUUID();
         testBooking = newBooking(resourceId, STARTS_AT, ENDS_AT);
     }
@@ -209,6 +215,8 @@ class BookingServiceTest {
 
         assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
         verify(bookingRepository).saveAndFlush(testBooking);
+        verify(notificationService)
+                .sendBookingConfirmed(publicId, testBooking.getCustomerEmail(), testBooking.getCustomerName());
     }
 
     @Test
@@ -219,6 +227,7 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> bookingService.confirm(publicId)).isInstanceOf(BookingNotFoundException.class);
         verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
+        verify(notificationService, never()).sendBookingConfirmed(any(), any(), any());
     }
 
     @ParameterizedTest
@@ -236,6 +245,8 @@ class BookingServiceTest {
 
         assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
         verify(bookingRepository).saveAndFlush(booking);
+        verify(notificationService)
+                .sendBookingCancelled(publicId, booking.getCustomerEmail(), booking.getCustomerName());
     }
 
     @Test
