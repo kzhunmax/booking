@@ -32,7 +32,7 @@ public class User implements Identifiable {
     private Long id;
 
     @Column(name = "public_id", unique = true, updatable = false, nullable = false)
-    public UUID publicId;
+    private UUID publicId;
 
     @Version
     private Long version;
@@ -112,5 +112,19 @@ public class User implements Identifiable {
 
     public Instant getUpdatedAt() {
         return auditInfo.getUpdatedAt();
+    }
+
+    public void block() {
+        if (this.status == UserStatus.BLOCKED) {
+            return;
+        }
+        this.status = UserStatus.BLOCKED;
+    }
+
+    public void unblock() {
+        if (this.status == UserStatus.ACTIVE) {
+            return;
+        }
+        this.status = UserStatus.ACTIVE;
     }
 }
