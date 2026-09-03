@@ -1,5 +1,6 @@
 package com.booking.app.architecture;
 
+import static com.booking.app.architecture.ApplicationModules.APPLICATION_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.BOOKING_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_WEB_PACKAGE;
@@ -7,6 +8,7 @@ import static com.booking.app.architecture.ApplicationModules.CONFIG_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.DOMAIN_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.EXCEPTION_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.INFRASTRUCTURE_PACKAGES;
+import static com.booking.app.architecture.ApplicationModules.NOTIFICATION_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.PAYMENT_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.RESOURCE_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.ROOT_PACKAGE;
@@ -27,6 +29,7 @@ class LayerArchTest {
     private static final String WEB = "Web";
     private static final String ERROR_HANDLING = "ErrorHandling";
     private static final String API = "Api";
+    private static final String APPLICATION = "Application";
     private static final String PERSISTENCE = "Persistence";
     private static final String DOMAIN = "Domain";
     private static final String SHARED = "Shared";
@@ -40,7 +43,9 @@ class LayerArchTest {
             .layer(ERROR_HANDLING)
             .definedBy(EXCEPTION_PACKAGES, COMMON_WEB_PACKAGE)
             .layer(API)
-            .definedBy(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
+            .definedBy(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
+            .layer(APPLICATION)
+            .definedBy(APPLICATION_PACKAGES)
             .layer(PERSISTENCE)
             .definedBy(INFRASTRUCTURE_PACKAGES)
             .layer(DOMAIN)
@@ -55,12 +60,14 @@ class LayerArchTest {
             .mayNotBeAccessedByAnyLayer()
             .whereLayer(CONFIGURATION)
             .mayNotBeAccessedByAnyLayer()
+            .whereLayer(APPLICATION)
+            .mayNotBeAccessedByAnyLayer()
             .whereLayer(API)
-            .mayOnlyBeAccessedByLayers(WEB, ERROR_HANDLING, PERSISTENCE, DOMAIN)
+            .mayOnlyBeAccessedByLayers(WEB, APPLICATION, PERSISTENCE, DOMAIN, ERROR_HANDLING)
             .whereLayer(PERSISTENCE)
-            .mayOnlyBeAccessedByLayers(API)
+            .mayOnlyBeAccessedByLayers(APPLICATION)
             .whereLayer(DOMAIN)
-            .mayOnlyBeAccessedByLayers(API, PERSISTENCE);
+            .mayOnlyBeAccessedByLayers(APPLICATION, PERSISTENCE);
 
     @ArchTest
     static final ArchRule DOMAIN_DOES_NOT_DEPEND_ON_OUTER_LAYERS = noClasses()
@@ -117,6 +124,5 @@ class LayerArchTest {
             .haveSimpleNameEndingWith("Repository")
             .should()
             .onlyHaveDependentClassesThat()
-            .resideInAnyPackage(
-                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, INFRASTRUCTURE_PACKAGES);
+            .resideInAnyPackage(APPLICATION_PACKAGES, INFRASTRUCTURE_PACKAGES);
 }

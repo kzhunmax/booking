@@ -1,6 +1,7 @@
 package com.booking.app.architecture;
 
 import static com.booking.app.architecture.ApplicationModules.BOOKING_API_PACKAGE;
+import static com.booking.app.architecture.ApplicationModules.NOTIFICATION_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.PAYMENT_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.RESOURCE_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.ROOT_PACKAGE;
@@ -53,7 +54,11 @@ class CodingRulesArchTest {
     @ArchTest
     static final ArchRule BUSINESS_LOGIC_READS_TIME_FROM_THE_INJECTED_CLOCK = noClasses()
             .that()
-            .resideInAnyPackage(BOOKING_API_PACKAGE + "..", RESOURCE_API_PACKAGE + "..", PAYMENT_API_PACKAGE + "..")
+            .resideInAnyPackage(
+                    BOOKING_API_PACKAGE + "..",
+                    RESOURCE_API_PACKAGE + "..",
+                    PAYMENT_API_PACKAGE + "..",
+                    NOTIFICATION_API_PACKAGE + "..")
             .should()
             .callMethod(Instant.class, "now")
             .orShould()

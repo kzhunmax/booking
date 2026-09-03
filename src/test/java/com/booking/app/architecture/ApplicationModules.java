@@ -19,12 +19,14 @@ final class ApplicationModules {
     static final String BOOKING_API_PACKAGE = ROOT_PACKAGE + ".booking";
     static final String RESOURCE_API_PACKAGE = ROOT_PACKAGE + ".resource";
     static final String PAYMENT_API_PACKAGE = ROOT_PACKAGE + ".payment";
+    static final String NOTIFICATION_API_PACKAGE = ROOT_PACKAGE + ".notification";
     static final String COMMON_PACKAGE = ROOT_PACKAGE + ".common";
     static final String COMMON_WEB_PACKAGE = COMMON_PACKAGE + ".web";
     static final String CONFIG_PACKAGE = ROOT_PACKAGE + ".config";
 
     static final String INTERNAL_PACKAGES = "..internal..";
     static final String DOMAIN_PACKAGES = "..internal.domain..";
+    static final String APPLICATION_PACKAGES = "..internal.application..";
     static final String INFRASTRUCTURE_PACKAGES = "..internal.infrastructure..";
     static final String WEB_PACKAGES = "..internal.web..";
     static final String EXCEPTION_PACKAGES = "..internal.exception..";

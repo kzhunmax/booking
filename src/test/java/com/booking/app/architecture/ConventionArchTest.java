@@ -1,11 +1,13 @@
 package com.booking.app.architecture;
 
+import static com.booking.app.architecture.ApplicationModules.APPLICATION_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.BOOKING_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_WEB_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.CONFIG_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.DOMAIN_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.EXCEPTION_PACKAGES;
 import static com.booking.app.architecture.ApplicationModules.INFRASTRUCTURE_PACKAGES;
+import static com.booking.app.architecture.ApplicationModules.NOTIFICATION_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.PAYMENT_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.RESOURCE_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.ROOT_PACKAGE;
@@ -41,14 +43,25 @@ class ConventionArchTest {
             classes().that().areAnnotatedWith(RestController.class).should().haveSimpleNameEndingWith("Controller");
 
     @ArchTest
-    static final ArchRule SERVICES_ARE_THE_PUBLISHED_MODULE_API = classes()
+    static final ArchRule SERVICE_INTERFACES_ARE_THE_PUBLISHED_MODULE_API = classes()
+            .that()
+            .haveSimpleNameEndingWith("Service")
+            .and()
+            .areInterfaces()
+            .should()
+            .resideInAnyPackage(
+                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
+            .because("the service interface is the only entry point a neighbouring module is allowed to call");
+
+    @ArchTest
+    static final ArchRule SERVICE_IMPLEMENTATIONS_LIVE_IN_APPLICATION_PACKAGES = classes()
             .that()
             .areAnnotatedWith(Service.class)
             .should()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
+            .resideInAPackage(APPLICATION_PACKAGES)
             .andShould()
             .haveSimpleNameEndingWith("Service")
-            .because("the service is the only entry point a neighbouring module is allowed to call");
+            .because("service implementations belong in internal.application and are wired via Spring");
 
     @ArchTest
     static final ArchRule REPOSITORIES_ARE_SPRING_DATA_INTERFACES = classes()
@@ -93,7 +106,8 @@ class ConventionArchTest {
             .should()
             .haveSimpleNameEndingWith("Exception")
             .andShould()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
+            .resideInAnyPackage(
+                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
             .because("callers of a module must be able to catch its failures without reaching into internals");
 
     @ArchTest
