@@ -54,7 +54,8 @@ class PaymentTest {
             assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
             assertThat(payment.getIdempotencyKey()).isEqualTo(idempotencyKey);
             assertThat(payment.getGatewayReference()).isNull();
-            assertThat(payment.getAuditInfo()).isNotNull();
+            assertThat(payment.getCreatedAt()).isNull();
+            assertThat(payment.getUpdatedAt()).isNull();
 
             // Hibernate generates
             assertThat(payment.getVersion()).isNull();

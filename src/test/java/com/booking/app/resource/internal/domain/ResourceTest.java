@@ -43,12 +43,13 @@ class ResourceTest {
             assertThat(resource.getPricePerHour()).isEqualTo(BigDecimal.valueOf(100));
             assertThat(resource.getCurrency()).isEqualTo("USD");
             assertThat(resource.getPublicId()).isNotNull();
-            assertThat(resource.getAuditInfo()).isNotNull();
+            assertThat(resource.getCreatedAt()).isNull();
+            assertThat(resource.getUpdatedAt()).isNull();
 
             // Hibernate generates
             assertThat(resource.getVersion()).isNull();
-            assertThat(resource.getAuditInfo().getCreatedAt()).isNull();
-            assertThat(resource.getAuditInfo().getUpdatedAt()).isNull();
+            assertThat(resource.getCreatedAt()).isNull();
+            assertThat(resource.getUpdatedAt()).isNull();
         }
 
         @Test

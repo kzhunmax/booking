@@ -18,6 +18,7 @@ import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -123,8 +124,12 @@ public class Payment implements Identifiable {
         return gatewayReference;
     }
 
-    public AuditInfo getAuditInfo() {
-        return auditInfo;
+    public Instant getCreatedAt() {
+        return auditInfo.getCreatedAt();
+    }
+
+    public Instant getUpdatedAt() {
+        return auditInfo.getUpdatedAt();
     }
 
     public void markAsSucceeded(String gatewayReference) {

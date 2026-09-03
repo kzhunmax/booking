@@ -67,8 +67,8 @@ class BookingRepositoryTest {
 
         assertThat(saved.getPublicId()).isNotNull();
         assertThat(saved.getVersion()).isNotNull();
-        assertThat(saved.getAuditInfo().getCreatedAt()).isNotNull();
-        assertThat(saved.getAuditInfo().getUpdatedAt()).isNotNull();
+        assertThat(saved.getCreatedAt()).isNotNull();
+        assertThat(saved.getUpdatedAt()).isNotNull();
     }
 
     @Test

@@ -141,8 +141,12 @@ public class Booking implements Identifiable {
         return currency;
     }
 
-    public AuditInfo getAuditInfo() {
-        return auditInfo;
+    public Instant getCreatedAt() {
+        return auditInfo.getCreatedAt();
+    }
+
+    public Instant getUpdatedAt() {
+        return auditInfo.getUpdatedAt();
     }
 
     public void confirm() {

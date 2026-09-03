@@ -61,7 +61,8 @@ class BookingTest {
             assertThat(booking.getStatus()).isEqualTo(BookingStatus.PENDING);
             assertThat(booking.getTotalAmount()).isEqualTo(BigDecimal.valueOf(100.00));
             assertThat(booking.getCurrency()).isEqualTo("USD");
-            assertThat(booking.getAuditInfo()).isNotNull();
+            assertThat(booking.getCreatedAt()).isNull();
+            assertThat(booking.getUpdatedAt()).isNull();
         }
 
         @Test
