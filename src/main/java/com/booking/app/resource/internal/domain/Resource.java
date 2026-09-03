@@ -70,7 +70,7 @@ public class Resource implements Identifiable {
         this.name = details.name();
         this.description = details.description();
         this.pricePerHour = pricing.pricePerHour();
-        this.currency = pricing.currency().strip().toUpperCase();
+        this.currency = pricing.currency();
     }
 
     @Override

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.booking.app.resource.internal.application.DefaultResourceService;
 import com.booking.app.resource.internal.domain.Resource;
 import com.booking.app.resource.internal.domain.ResourceDetails;
 import com.booking.app.resource.internal.domain.ResourcePricing;
@@ -37,7 +38,7 @@ class ResourceServiceTest {
     private ResourceRepository resourceRepository;
 
     @InjectMocks
-    private ResourceService resourceService;
+    private DefaultResourceService resourceService;
 
     private Resource testResource;
 
