@@ -37,4 +37,8 @@ public record SecurityUser(
     public boolean isEnabled() {
         return status == UserStatus.ACTIVE;
     }
+
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
+    }
 }
