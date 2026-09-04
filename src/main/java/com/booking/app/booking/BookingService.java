@@ -11,6 +11,8 @@ public interface BookingService {
     BookingResponse create(
             UUID resourceId, String customerEmail, String customerName, Instant startsAt, Instant endsAt);
 
+    BookingResponse findByPublicId(UUID publicId);
+
     BookingResponse findByPublicId(UUID publicId, String callerEmail, boolean isAdmin);
 
     Page<BookingResponse> findAll(
@@ -20,5 +22,5 @@ public interface BookingService {
 
     AvailableSlotsResponse findAvailableSlots(UUID resourceId, LocalDate date);
 
-    BookingResponse confirm(UUID publicId, String callerEmail, boolean isAdmin);
+    BookingResponse confirm(UUID publicId);
 }

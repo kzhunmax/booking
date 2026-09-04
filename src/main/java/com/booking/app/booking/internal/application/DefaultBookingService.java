@@ -79,6 +79,13 @@ public class DefaultBookingService implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
+    public BookingResponse findByPublicId(UUID publicId) {
+        log.debug("Fetching booking by publicId={}", publicId);
+        return BookingMapper.toResponse(requireBooking(publicId, null, true));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public BookingResponse findByPublicId(UUID publicId, String callerEmail, boolean isAdmin) {
         log.debug("Fetching booking by publicId={}", publicId);
         return BookingMapper.toResponse(requireBooking(publicId, callerEmail, isAdmin));
@@ -118,8 +125,8 @@ public class DefaultBookingService implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponse confirm(UUID publicId, String callerEmail, boolean isAdmin) {
-        Booking found = requireBooking(publicId, callerEmail, isAdmin);
+    public BookingResponse confirm(UUID publicId) {
+        Booking found = requireBooking(publicId, null, true);
         found.confirm();
         persist(found);
         log.info("Booking confirmed: publicId={}", publicId);

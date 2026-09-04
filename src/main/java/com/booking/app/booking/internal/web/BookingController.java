@@ -1,6 +1,5 @@
 package com.booking.app.booking.internal.web;
 
-import com.booking.app.auth.UserRole;
 import com.booking.app.booking.AvailableSlotsResponse;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
@@ -41,7 +40,7 @@ public class BookingController {
     public ResponseEntity<BookingResponse> create(
             @AuthenticationPrincipal SecurityUser currentUser, @Valid @RequestBody CreateBookingRequest request) {
         BookingResponse created = bookingService.create(
-                request.resourceId(), currentUser.email(), currentUser.email(), request.startsAt(), request.endsAt());
+                request.resourceId(), currentUser.email(), currentUser.name(), request.startsAt(), request.endsAt());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(created.publicId())
@@ -59,8 +58,7 @@ public class BookingController {
     @GetMapping("/{publicId}")
     public ResponseEntity<BookingResponse> getById(
             @PathVariable UUID publicId, @AuthenticationPrincipal SecurityUser currentUser) {
-        boolean isAdmin = currentUser.role() == UserRole.ADMIN;
-        return ResponseEntity.ok(bookingService.findByPublicId(publicId, currentUser.email(), isAdmin));
+        return ResponseEntity.ok(bookingService.findByPublicId(publicId, currentUser.email(), currentUser.isAdmin()));
     }
 
     @GetMapping
@@ -71,17 +69,13 @@ public class BookingController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @PageableDefault(size = 20, sort = "startsAt", direction = Sort.Direction.ASC) Pageable pageable) {
-        String customerEmail = null;
-        if (currentUser.role() != UserRole.ADMIN) {
-            customerEmail = currentUser.email();
-        }
+        String customerEmail = currentUser.isAdmin() ? null : currentUser.email();
         return bookingService.findAll(resourceId, customerEmail, status, from, to, pageable);
     }
 
     @PostMapping("/{publicId}/cancel")
     public ResponseEntity<BookingResponse> cancel(
             @PathVariable UUID publicId, @AuthenticationPrincipal SecurityUser currentUser) {
-        boolean isAdmin = currentUser.role() == UserRole.ADMIN;
-        return ResponseEntity.ok(bookingService.cancel(publicId, currentUser.email(), isAdmin));
+        return ResponseEntity.ok(bookingService.cancel(publicId, currentUser.email(), currentUser.isAdmin()));
     }
 }
