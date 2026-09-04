@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,6 +40,7 @@ public class ResourceController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResourceResponse> createResource(@Valid @RequestBody CreateResourceRequest request) {
         ResourceResponse created = resourceService.createResource(
                 request.name(), request.description(), request.pricePerHour(), request.currency());
@@ -58,6 +60,7 @@ public class ResourceController {
     }
 
     @PutMapping("/{publicId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResourceResponse> update(
             @PathVariable UUID publicId, @Valid @RequestBody UpdateResourceRequest request) {
         ResourceResponse updated = resourceService.update(publicId, request.name(), request.description());
@@ -65,6 +68,7 @@ public class ResourceController {
     }
 
     @PatchMapping("/{publicId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResourceResponse> updateStatus(
             @PathVariable UUID publicId, @Valid @RequestBody UpdateStatusRequest request) {
         ResourceResponse updated = resourceService.updateStatus(publicId, request.status());
@@ -72,6 +76,7 @@ public class ResourceController {
     }
 
     @DeleteMapping("/{publicId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> archive(@PathVariable UUID publicId) {
         resourceService.archive(publicId);
         return ResponseEntity.noContent().build();
