@@ -1,9 +1,11 @@
 package com.booking.app.booking.internal.web;
 
+import com.booking.app.auth.UserRole;
 import com.booking.app.booking.AvailableSlotsResponse;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
 import com.booking.app.booking.BookingStatus;
+import com.booking.app.common.security.SecurityUser;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.Instant;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,13 +38,10 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<BookingResponse> create(@Valid @RequestBody CreateBookingRequest request) {
+    public ResponseEntity<BookingResponse> create(
+            @AuthenticationPrincipal SecurityUser currentUser, @Valid @RequestBody CreateBookingRequest request) {
         BookingResponse created = bookingService.create(
-                request.resourceId(),
-                request.customerEmail(),
-                request.customerName(),
-                request.startsAt(),
-                request.endsAt());
+                request.resourceId(), currentUser.email(), currentUser.email(), request.startsAt(), request.endsAt());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(created.publicId())
@@ -57,22 +57,31 @@ public class BookingController {
     }
 
     @GetMapping("/{publicId}")
-    public ResponseEntity<BookingResponse> getById(@PathVariable UUID publicId) {
-        return ResponseEntity.ok(bookingService.findByPublicId(publicId));
+    public ResponseEntity<BookingResponse> getById(
+            @PathVariable UUID publicId, @AuthenticationPrincipal SecurityUser currentUser) {
+        boolean isAdmin = currentUser.role() == UserRole.ADMIN;
+        return ResponseEntity.ok(bookingService.findByPublicId(publicId, currentUser.email(), isAdmin));
     }
 
     @GetMapping
     public Page<BookingResponse> getBookings(
             @RequestParam(required = false) UUID resourceId,
+            @AuthenticationPrincipal SecurityUser currentUser,
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @PageableDefault(size = 20, sort = "startsAt", direction = Sort.Direction.ASC) Pageable pageable) {
-        return bookingService.findAll(resourceId, status, from, to, pageable);
+        String customerEmail = null;
+        if (currentUser.role() != UserRole.ADMIN) {
+            customerEmail = currentUser.email();
+        }
+        return bookingService.findAll(resourceId, customerEmail, status, from, to, pageable);
     }
 
     @PostMapping("/{publicId}/cancel")
-    public ResponseEntity<BookingResponse> cancel(@PathVariable UUID publicId) {
-        return ResponseEntity.ok(bookingService.cancel(publicId));
+    public ResponseEntity<BookingResponse> cancel(
+            @PathVariable UUID publicId, @AuthenticationPrincipal SecurityUser currentUser) {
+        boolean isAdmin = currentUser.role() == UserRole.ADMIN;
+        return ResponseEntity.ok(bookingService.cancel(publicId, currentUser.email(), isAdmin));
     }
 }

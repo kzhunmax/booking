@@ -79,23 +79,23 @@ public class DefaultBookingService implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public BookingResponse findByPublicId(UUID publicId) {
+    public BookingResponse findByPublicId(UUID publicId, String callerEmail, boolean isAdmin) {
         log.debug("Fetching booking by publicId={}", publicId);
-        return BookingMapper.toResponse(requireBooking(publicId));
+        return BookingMapper.toResponse(requireBooking(publicId, callerEmail, isAdmin));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> findAll(
-            UUID resourceId, BookingStatus status, Instant from, Instant to, Pageable pageable) {
-        Specification<Booking> spec = BookingSpecifications.filter(resourceId, status, from, to);
+            UUID resourceId, String customerEmail, BookingStatus status, Instant from, Instant to, Pageable pageable) {
+        Specification<Booking> spec = BookingSpecifications.filter(resourceId, customerEmail, status, from, to);
         return bookingRepository.findAll(spec, pageable).map(BookingMapper::toResponse);
     }
 
     @Override
     @Transactional
-    public BookingResponse cancel(UUID publicId) {
-        Booking found = requireBooking(publicId);
+    public BookingResponse cancel(UUID publicId, String callerEmail, boolean isAdmin) {
+        Booking found = requireBooking(publicId, callerEmail, isAdmin);
         found.cancel(clock.instant());
         persist(found);
         log.info("Booking cancelled: publicId={}", publicId);
@@ -118,8 +118,8 @@ public class DefaultBookingService implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponse confirm(UUID publicId) {
-        Booking found = requireBooking(publicId);
+    public BookingResponse confirm(UUID publicId, String callerEmail, boolean isAdmin) {
+        Booking found = requireBooking(publicId, callerEmail, isAdmin);
         found.confirm();
         persist(found);
         log.info("Booking confirmed: publicId={}", publicId);
@@ -149,8 +149,13 @@ public class DefaultBookingService implements BookingService {
         return slots;
     }
 
-    private Booking requireBooking(UUID publicId) {
-        return bookingRepository.findByPublicId(publicId).orElseThrow(() -> new BookingNotFoundException(publicId));
+    private Booking requireBooking(UUID publicId, String callerEmail, boolean isAdmin) {
+        if (isAdmin) {
+            return bookingRepository.findByPublicId(publicId).orElseThrow(() -> new BookingNotFoundException(publicId));
+        }
+        return bookingRepository
+                .findByPublicIdAndCustomerEmail(publicId, callerEmail)
+                .orElseThrow(() -> new BookingNotFoundException(publicId));
     }
 
     private void persist(Booking booking) {

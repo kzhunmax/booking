@@ -34,13 +34,19 @@ public final class BookingSpecifications {
         return Specification.where(endsAfter(from)).and(startsBefore(to));
     }
 
-    public static Specification<Booking> filter(UUID resourceId, BookingStatus status, Instant from, Instant to) {
+    public static Specification<Booking> filter(
+            UUID resourceId, String customerEmail, BookingStatus status, Instant from, Instant to) {
         return Specification.where(forResource(resourceId))
                 .and(withStatus(status))
-                .and(overlapping(from, to));
+                .and(overlapping(from, to))
+                .and(forCustomerEmail(customerEmail));
     }
 
     public static Specification<Booking> activeBookingsInInterval(UUID resourceId, Instant from, Instant to) {
         return Specification.where(forResource(resourceId)).and(notCancelled()).and(overlapping(from, to));
+    }
+
+    public static Specification<Booking> forCustomerEmail(String customerEmail) {
+        return (root, query, cb) -> customerEmail == null ? null : cb.equal(root.get("customerEmail"), customerEmail);
     }
 }
