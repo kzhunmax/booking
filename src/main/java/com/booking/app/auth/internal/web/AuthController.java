@@ -28,8 +28,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse created = authService.register(request.email(), request.password(), request.name());
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/users/{id}")
                 .buildAndExpand(created.publicId())
                 .toUri();
         return ResponseEntity.created(location).body(created);
