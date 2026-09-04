@@ -1,5 +1,6 @@
 package com.booking.app.payment.internal.web;
 
+import com.booking.app.common.security.SecurityUser;
 import com.booking.app.payment.PaymentExecution;
 import com.booking.app.payment.PaymentResponse;
 import com.booking.app.payment.PaymentService;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,8 +35,11 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<PaymentResponse> create(
-            @RequestHeader("Idempotency-Key") UUID idempotencyKey, @Valid @RequestBody CreatePaymentRequest request) {
-        PaymentExecution execution = paymentService.create(request.bookingId(), request.userId(), idempotencyKey);
+            @AuthenticationPrincipal SecurityUser currentUser,
+            @RequestHeader("Idempotency-Key") UUID idempotencyKey,
+            @Valid @RequestBody CreatePaymentRequest request) {
+        UUID effectiveUserId = currentUser.isAdmin() ? request.userId() : currentUser.publicId();
+        PaymentExecution execution = paymentService.create(request.bookingId(), effectiveUserId, idempotencyKey);
         if (!execution.isNew()) {
             return ResponseEntity.ok(execution.response());
         }
@@ -46,15 +51,19 @@ public class PaymentController {
     }
 
     @GetMapping("/{publicId}")
-    public ResponseEntity<PaymentResponse> getById(@PathVariable UUID publicId) {
-        return ResponseEntity.ok(paymentService.findByPublicId(publicId));
+    public ResponseEntity<PaymentResponse> getById(
+            @PathVariable UUID publicId, @AuthenticationPrincipal SecurityUser currentUser) {
+        UUID callerUserId = currentUser.isAdmin() ? null : currentUser.publicId();
+        return ResponseEntity.ok(paymentService.findByPublicId(publicId, callerUserId));
     }
 
     @GetMapping
     public Page<PaymentResponse> getPaymentAttempts(
             @RequestParam(value = "bookingId") UUID bookingId,
+            @AuthenticationPrincipal SecurityUser currentUser,
             @PageableDefault(size = 20, sort = "auditInfo.createdAt", direction = Sort.Direction.ASC)
                     Pageable pageable) {
-        return paymentService.findAllPayments(bookingId, pageable);
+        UUID callerUserId = currentUser.isAdmin() ? null : currentUser.publicId();
+        return paymentService.findAllPayments(bookingId, callerUserId, pageable);
     }
 }

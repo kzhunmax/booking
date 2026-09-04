@@ -12,7 +12,11 @@ import org.springframework.stereotype.Repository;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByPublicId(UUID publicId);
 
+    Optional<Payment> findByPublicIdAndUserId(UUID publicId, UUID userId);
+
     Optional<Payment> findByIdempotencyKey(UUID idempotencyKey);
 
-    Page<Payment> findByBookingId(UUID booking, Pageable pageable);
+    Page<Payment> findByBookingId(UUID bookingId, Pageable pageable);
+
+    Page<Payment> findByBookingIdAndUserId(UUID bookingId, UUID userId, Pageable pageable);
 }

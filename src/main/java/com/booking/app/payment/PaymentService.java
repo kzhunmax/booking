@@ -6,9 +6,9 @@ import org.springframework.data.domain.Pageable;
 
 public interface PaymentService {
 
-    PaymentResponse findByPublicId(UUID publicId);
+    PaymentResponse findByPublicId(UUID publicId, UUID callerUserId);
 
     PaymentExecution create(UUID bookingId, UUID userId, UUID idempotencyKey);
 
-    Page<PaymentResponse> findAllPayments(UUID bookingId, Pageable pageable);
+    Page<PaymentResponse> findAllPayments(UUID bookingId, UUID callerUserId, Pageable pageable);
 }

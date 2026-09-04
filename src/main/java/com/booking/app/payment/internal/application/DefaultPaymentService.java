@@ -44,9 +44,9 @@ public class DefaultPaymentService implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaymentResponse findByPublicId(UUID publicId) {
+    public PaymentResponse findByPublicId(UUID publicId, UUID callerUserId) {
         log.debug("Fetching payment by publicId={}", publicId);
-        return PaymentMapper.toResponse(requirePayment(publicId));
+        return PaymentMapper.toResponse(requirePayment(publicId, callerUserId));
     }
 
     @Override
@@ -65,12 +65,20 @@ public class DefaultPaymentService implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PaymentResponse> findAllPayments(UUID bookingId, Pageable pageable) {
-        return paymentRepository.findByBookingId(bookingId, pageable).map(PaymentMapper::toResponse);
+    public Page<PaymentResponse> findAllPayments(UUID bookingId, UUID callerUserId, Pageable pageable) {
+        Page<Payment> payments = callerUserId == null
+                ? paymentRepository.findByBookingId(bookingId, pageable)
+                : paymentRepository.findByBookingIdAndUserId(bookingId, callerUserId, pageable);
+        return payments.map(PaymentMapper::toResponse);
     }
 
-    private Payment requirePayment(UUID publicId) {
-        return paymentRepository.findByPublicId(publicId).orElseThrow(() -> new PaymentNotFoundException(publicId));
+    private Payment requirePayment(UUID publicId, UUID callerUserId) {
+        if (callerUserId == null) {
+            return paymentRepository.findByPublicId(publicId).orElseThrow(() -> new PaymentNotFoundException(publicId));
+        }
+        return paymentRepository
+                .findByPublicIdAndUserId(publicId, callerUserId)
+                .orElseThrow(() -> new PaymentNotFoundException(publicId));
     }
 
     private Payment checkIdempotency(UUID bookingId, UUID idempotencyKey) {
