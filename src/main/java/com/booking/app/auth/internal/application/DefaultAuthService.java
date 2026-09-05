@@ -62,8 +62,7 @@ public class DefaultAuthService implements AuthService {
         Authentication authentication =
                 authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, password));
         if (authentication.getPrincipal() instanceof SecurityUser user) {
-            String token =
-                    jwtService.generateToken(user.getUsername(), user.role().name(), user.publicId());
+            String token = jwtService.generateToken(user.getUsername(), user.role(), user.publicId());
             return new AuthResponse(token);
         }
         throw new IllegalStateException("Unexpected principle type");
