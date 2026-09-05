@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -32,6 +33,15 @@ public class AuthExceptionHandler {
         ProblemDetail problemDetail =
                 ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         problemDetail.setTitle("Bad Credentials");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problemDetail);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ProblemDetail> handleDisabled(DisabledException ex) {
+        log.warn("Account disabled: {}", ex.getMessage());
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "User account is disabled");
+        problemDetail.setTitle("Account Disabled");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problemDetail);
     }
 
