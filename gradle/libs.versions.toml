@@ -21,6 +21,7 @@ errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 [libraries]
 # JWT
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
 
 # Error Prone

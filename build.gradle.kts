@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.jjwt.api)
     developmentOnly(libs.spring.boot.devtools)
     runtimeOnly(libs.postgresql)
+    runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
     testImplementation(libs.spring.boot.starter.data.jpa.test)
     testImplementation(libs.spring.boot.starter.flyway.test)
