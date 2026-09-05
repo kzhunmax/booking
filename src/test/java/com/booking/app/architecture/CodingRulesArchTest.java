@@ -40,6 +40,8 @@ class CodingRulesArchTest {
 
     @ArchTest
     static final ArchRule NO_LEGACY_DATE_API = noClasses()
+            .that()
+            .doNotHaveSimpleName("DefaultJwtService")
             .should()
             .dependOnClassesThat()
             .haveFullyQualifiedName("java.util.Date")
@@ -49,7 +51,7 @@ class CodingRulesArchTest {
             .orShould()
             .dependOnClassesThat()
             .haveFullyQualifiedName("java.sql.Timestamp")
-            .as("no classes should use the legacy date API");
+            .as("no classes should use the legacy date API (except DefaultJwtService due to JJWT library constraints)");
 
     @ArchTest
     static final ArchRule BUSINESS_LOGIC_READS_TIME_FROM_THE_INJECTED_CLOCK = noClasses()

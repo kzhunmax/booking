@@ -1,6 +1,7 @@
 package com.booking.app.architecture;
 
 import static com.booking.app.architecture.ApplicationModules.APPLICATION_PACKAGES;
+import static com.booking.app.architecture.ApplicationModules.AUTH_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.BOOKING_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_WEB_PACKAGE;
@@ -43,7 +44,12 @@ class LayerArchTest {
             .layer(ERROR_HANDLING)
             .definedBy(EXCEPTION_PACKAGES, COMMON_WEB_PACKAGE)
             .layer(API)
-            .definedBy(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
+            .definedBy(
+                    BOOKING_API_PACKAGE,
+                    RESOURCE_API_PACKAGE,
+                    PAYMENT_API_PACKAGE,
+                    NOTIFICATION_API_PACKAGE,
+                    AUTH_API_PACKAGE)
             .layer(APPLICATION)
             .definedBy(APPLICATION_PACKAGES)
             .layer(PERSISTENCE)
@@ -63,7 +69,7 @@ class LayerArchTest {
             .whereLayer(APPLICATION)
             .mayNotBeAccessedByAnyLayer()
             .whereLayer(API)
-            .mayOnlyBeAccessedByLayers(WEB, APPLICATION, PERSISTENCE, DOMAIN, ERROR_HANDLING)
+            .mayOnlyBeAccessedByLayers(WEB, APPLICATION, PERSISTENCE, DOMAIN, ERROR_HANDLING, CONFIGURATION)
             .whereLayer(PERSISTENCE)
             .mayOnlyBeAccessedByLayers(APPLICATION)
             .whereLayer(DOMAIN)

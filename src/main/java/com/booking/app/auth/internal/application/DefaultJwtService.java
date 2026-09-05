@@ -23,6 +23,7 @@ public class DefaultJwtService implements JwtService {
         this.expirationMs = expirationMs;
     }
 
+    @Override
     public String generateToken(String subject, String role, UUID userId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + expirationMs);
@@ -36,19 +37,23 @@ public class DefaultJwtService implements JwtService {
                 .compact();
     }
 
+    @Override
     public String extractSubject(String token) {
         return parseClaims(token).getSubject();
     }
 
+    @Override
     public String extractRole(String token) {
         return parseClaims(token).get("role", String.class);
     }
 
+    @Override
     public UUID extractUserId(String token) {
         String userId = parseClaims(token).get("userId", String.class);
         return UUID.fromString(userId);
     }
 
+    @Override
     public boolean isValid(String token, UserDetails userDetails) {
         String subject = extractSubject(token);
 

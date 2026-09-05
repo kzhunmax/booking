@@ -20,6 +20,7 @@ final class ApplicationModules {
     static final String RESOURCE_API_PACKAGE = ROOT_PACKAGE + ".resource";
     static final String PAYMENT_API_PACKAGE = ROOT_PACKAGE + ".payment";
     static final String NOTIFICATION_API_PACKAGE = ROOT_PACKAGE + ".notification";
+    static final String AUTH_API_PACKAGE = ROOT_PACKAGE + ".auth";
     static final String COMMON_PACKAGE = ROOT_PACKAGE + ".common";
     static final String COMMON_WEB_PACKAGE = COMMON_PACKAGE + ".web";
     static final String CONFIG_PACKAGE = ROOT_PACKAGE + ".config";

@@ -1,5 +1,6 @@
 package com.booking.app.architecture;
 
+import static com.booking.app.architecture.ApplicationModules.AUTH_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.BOOKING_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_WEB_PACKAGE;
@@ -66,6 +67,15 @@ class ModuleBoundaryArchTest {
             .dependOnClassesThat()
             .resideInAPackage(NOTIFICATION_API_PACKAGE + ".internal..")
             .as("no class outside the notification module should depend on com.booking.app.notification.internal..");
+
+    @ArchTest
+    static final ArchRule AUTH_INTERNALS_STAY_INSIDE_THE_AUTH_MODULE = noClasses()
+            .that()
+            .resideOutsideOfPackage(AUTH_API_PACKAGE + "..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage(AUTH_API_PACKAGE + ".internal..")
+            .as("no class outside the auth module should depend on com.booking.app.auth.internal..");
 
     @ArchTest
     static final ArchRule MODULES_ARE_FREE_OF_CYCLES =
@@ -153,7 +163,8 @@ class ModuleBoundaryArchTest {
                     BOOKING_API_PACKAGE + "..",
                     RESOURCE_API_PACKAGE + "..",
                     PAYMENT_API_PACKAGE + "..",
-                    NOTIFICATION_API_PACKAGE + "..")
+                    NOTIFICATION_API_PACKAGE + "..",
+                    AUTH_API_PACKAGE + "..")
             .because("com.booking.app.common is a shared kernel and must not know about concrete modules");
 
     @ArchTest
@@ -169,7 +180,11 @@ class ModuleBoundaryArchTest {
             .that()
             .areDeclaredInClassesThat()
             .resideInAnyPackage(
-                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
+                    BOOKING_API_PACKAGE,
+                    RESOURCE_API_PACKAGE,
+                    PAYMENT_API_PACKAGE,
+                    NOTIFICATION_API_PACKAGE,
+                    AUTH_API_PACKAGE)
             .and()
             .arePublic()
             .should()

@@ -1,6 +1,7 @@
 package com.booking.app.architecture;
 
 import static com.booking.app.architecture.ApplicationModules.APPLICATION_PACKAGES;
+import static com.booking.app.architecture.ApplicationModules.AUTH_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.BOOKING_API_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.COMMON_WEB_PACKAGE;
 import static com.booking.app.architecture.ApplicationModules.CONFIG_PACKAGE;
@@ -50,7 +51,11 @@ class ConventionArchTest {
             .areInterfaces()
             .should()
             .resideInAnyPackage(
-                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
+                    BOOKING_API_PACKAGE,
+                    RESOURCE_API_PACKAGE,
+                    PAYMENT_API_PACKAGE,
+                    NOTIFICATION_API_PACKAGE,
+                    AUTH_API_PACKAGE)
             .because("the service interface is the only entry point a neighbouring module is allowed to call");
 
     @ArchTest
@@ -96,7 +101,7 @@ class ConventionArchTest {
             .should()
             .beRecords()
             .andShould()
-            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE)
+            .resideInAnyPackage(BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, AUTH_API_PACKAGE)
             .because("responses are part of the module API and must be immutable, entity-free carriers");
 
     @ArchTest
@@ -107,7 +112,11 @@ class ConventionArchTest {
             .haveSimpleNameEndingWith("Exception")
             .andShould()
             .resideInAnyPackage(
-                    BOOKING_API_PACKAGE, RESOURCE_API_PACKAGE, PAYMENT_API_PACKAGE, NOTIFICATION_API_PACKAGE)
+                    BOOKING_API_PACKAGE,
+                    RESOURCE_API_PACKAGE,
+                    PAYMENT_API_PACKAGE,
+                    NOTIFICATION_API_PACKAGE,
+                    AUTH_API_PACKAGE)
             .because("callers of a module must be able to catch its failures without reaching into internals");
 
     @ArchTest
