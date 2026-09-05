@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -42,6 +43,12 @@ class ResourceIntegrationTest {
     private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(50.0);
     private static final String DEFAULT_CURRENCY = "USD";
 
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
+
     @Autowired
     private RestTestClient restTestClient;
 
@@ -56,7 +63,7 @@ class ResourceIntegrationTest {
                 .post()
                 .uri("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new LoginRequest("admin@test.com", "Admin@P@ss1"))
+                .body(new LoginRequest(adminEmail, adminPassword))
                 .exchange()
                 .expectStatus()
                 .isOk()

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -25,8 +26,11 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 @Tag("integration")
 class AuthIntegrationTest {
 
-    private static final String ADMIN_EMAIL = "admin@test.com";
-    private static final String ADMIN_PASSWORD = "Admin@P@ss1";
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
 
     @Autowired
     private RestTestClient restTestClient;
@@ -420,7 +424,7 @@ class AuthIntegrationTest {
     }
 
     private String loginAdmin() {
-        return login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        return login(adminEmail, adminPassword);
     }
 
     private static RegisterRequest registerRequest(String email, String password) {

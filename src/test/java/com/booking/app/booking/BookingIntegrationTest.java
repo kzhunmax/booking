@@ -28,6 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -46,14 +47,22 @@ class BookingIntegrationTest {
     private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(50.0);
     private static final String DEFAULT_CURRENCY = "USD";
 
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
+
     @Autowired
     private RestTestClient restTestClient;
 
     private String customerToken;
+    private String adminToken;
 
     @BeforeEach
     void setUp() {
         customerToken = registerAndLogin("booking-customer-" + UUID.randomUUID() + "@example.com", "SecureP@ss1");
+        adminToken = login(adminEmail, adminPassword);
     }
 
     @Test
@@ -159,6 +168,7 @@ class BookingIntegrationTest {
         restTestClient
                 .patch()
                 .uri("/api/resources/{publicId}/status", resource.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new UpdateStatusRequest(ResourceStatus.INACTIVE))
                 .exchange()
@@ -198,6 +208,7 @@ class BookingIntegrationTest {
         ResourceResponse body = restTestClient
                 .post()
                 .uri("/api/resources")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateResourceRequest(
                         "room-" + UUID.randomUUID(), "integration room", DEFAULT_PRICE, DEFAULT_CURRENCY))
@@ -248,6 +259,11 @@ class BookingIntegrationTest {
     }
 
     private String registerAndLogin(String email, String password) {
+        register(email, password);
+        return login(email, password);
+    }
+
+    private void register(String email, String password) {
         restTestClient
                 .post()
                 .uri("/api/auth/register")
@@ -256,7 +272,9 @@ class BookingIntegrationTest {
                 .exchange()
                 .expectStatus()
                 .isCreated();
+    }
 
+    private String login(String email, String password) {
         AuthResponse auth = restTestClient
                 .post()
                 .uri("/api/auth/login")
