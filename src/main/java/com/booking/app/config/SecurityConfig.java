@@ -46,6 +46,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/resources/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/bookings/available-slots")
+                        .permitAll()
                         .anyRequest()
                         .authenticated())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
