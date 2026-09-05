@@ -197,7 +197,7 @@ class BookingServiceTest {
         Page<Booking> page = new PageImpl<>(List.of(booking), pageable, 1);
         when(bookingRepository.findAll(anyBookingSpec(), eq(pageable))).thenReturn(page);
 
-        Page<BookingResponse> result = bookingService.findAll(resourceId, status, STARTS_AT, ENDS_AT, pageable);
+        Page<BookingResponse> result = bookingService.findAll(resourceId, null, status, STARTS_AT, ENDS_AT, pageable);
 
         assertThat(result.getTotalElements()).isOne();
         assertThat(result.getContent().getFirst().status()).isEqualTo(status);
@@ -238,10 +238,11 @@ class BookingServiceTest {
     void shouldCancelBookableBooking(BookingStatus status) {
         Booking booking = bookingInStatus(status);
         UUID publicId = booking.getPublicId();
-        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findByPublicIdAndCustomerEmail(publicId, CUSTOMER_EMAIL))
+                .thenReturn(Optional.of(booking));
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        BookingResponse response = bookingService.cancel(publicId);
+        BookingResponse response = bookingService.cancel(publicId, CUSTOMER_EMAIL, false);
 
         assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
         verify(bookingRepository).saveAndFlush(booking);
@@ -254,10 +255,11 @@ class BookingServiceTest {
     void shouldBeIdempotentWhenCancellingAlreadyCancelledBooking() {
         testBooking.cancel(NOW);
         UUID publicId = testBooking.getPublicId();
-        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.of(testBooking));
+        when(bookingRepository.findByPublicIdAndCustomerEmail(publicId, CUSTOMER_EMAIL))
+                .thenReturn(Optional.of(testBooking));
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        BookingResponse response = bookingService.cancel(publicId);
+        BookingResponse response = bookingService.cancel(publicId, CUSTOMER_EMAIL, false);
 
         assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
         verify(bookingRepository).saveAndFlush(testBooking);
@@ -268,9 +270,11 @@ class BookingServiceTest {
     void shouldThrowWhenCancellingTooLate() {
         Booking lateBooking = newBooking(resourceId, NOW.plus(Duration.ofHours(1)), NOW.plus(Duration.ofHours(2)));
         UUID publicId = lateBooking.getPublicId();
-        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.of(lateBooking));
+        when(bookingRepository.findByPublicIdAndCustomerEmail(publicId, CUSTOMER_EMAIL))
+                .thenReturn(Optional.of(lateBooking));
 
-        assertThatThrownBy(() -> bookingService.cancel(publicId)).isInstanceOf(CancellationTooLateException.class);
+        assertThatThrownBy(() -> bookingService.cancel(publicId, CUSTOMER_EMAIL, false))
+                .isInstanceOf(CancellationTooLateException.class);
         verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
     }
 
@@ -280,9 +284,11 @@ class BookingServiceTest {
         testBooking.confirm();
         testBooking.complete(STARTS_AT);
         UUID publicId = testBooking.getPublicId();
-        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.of(testBooking));
+        when(bookingRepository.findByPublicIdAndCustomerEmail(publicId, CUSTOMER_EMAIL))
+                .thenReturn(Optional.of(testBooking));
 
-        assertThatThrownBy(() -> bookingService.cancel(publicId)).isInstanceOf(BookingAlreadyCompletedException.class);
+        assertThatThrownBy(() -> bookingService.cancel(publicId, CUSTOMER_EMAIL, false))
+                .isInstanceOf(BookingAlreadyCompletedException.class);
         verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
     }
 
@@ -290,9 +296,11 @@ class BookingServiceTest {
     @DisplayName("Should throw BookingNotFoundException when cancelling a missing booking")
     void shouldThrowWhenCancellingMissingBooking() {
         UUID publicId = testBooking.getPublicId();
-        when(bookingRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
+        when(bookingRepository.findByPublicIdAndCustomerEmail(publicId, CUSTOMER_EMAIL))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.cancel(publicId)).isInstanceOf(BookingNotFoundException.class);
+        assertThatThrownBy(() -> bookingService.cancel(publicId, CUSTOMER_EMAIL, false))
+                .isInstanceOf(BookingNotFoundException.class);
         verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
     }
 

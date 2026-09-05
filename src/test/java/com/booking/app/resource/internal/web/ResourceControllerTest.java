@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.booking.app.config.TestSecurityConfig;
 import com.booking.app.resource.InvalidStatusTransitionException;
 import com.booking.app.resource.NameAlreadyTakenException;
 import com.booking.app.resource.ResourceNotFoundException;
@@ -29,17 +30,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = ResourceController.class)
+@Import(TestSecurityConfig.class)
+@WithMockUser(roles = "ADMIN")
 class ResourceControllerTest {
 
     private static final BigDecimal DEFAULT_PRICE = BigDecimal.valueOf(100.0);

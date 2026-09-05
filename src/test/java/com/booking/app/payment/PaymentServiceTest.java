@@ -256,17 +256,31 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("Should find payment by publicId")
+    @DisplayName("Should find payment by publicId when caller is admin (null callerUserId)")
     void shouldFindPaymentByPublicId() {
         Payment payment = new Payment(bookingId, userId, AMOUNT, CURRENCY, idempotencyKey);
         UUID publicId = payment.getPublicId();
         when(paymentRepository.findByPublicId(publicId)).thenReturn(Optional.of(payment));
 
-        PaymentResponse response = paymentService.findByPublicId(publicId);
+        PaymentResponse response = paymentService.findByPublicId(publicId, null);
 
         assertThat(response.publicId()).isEqualTo(publicId);
         assertThat(response.bookingId()).isEqualTo(bookingId);
         verify(paymentRepository).findByPublicId(publicId);
+    }
+
+    @Test
+    @DisplayName("Should find payment by publicId and userId when caller is user")
+    void shouldFindPaymentByPublicIdAndUserId() {
+        Payment payment = new Payment(bookingId, userId, AMOUNT, CURRENCY, idempotencyKey);
+        UUID publicId = payment.getPublicId();
+        when(paymentRepository.findByPublicIdAndUserId(publicId, userId)).thenReturn(Optional.of(payment));
+
+        PaymentResponse response = paymentService.findByPublicId(publicId, userId);
+
+        assertThat(response.publicId()).isEqualTo(publicId);
+        assertThat(response.bookingId()).isEqualTo(bookingId);
+        verify(paymentRepository).findByPublicIdAndUserId(publicId, userId);
     }
 
     @Test
@@ -275,24 +289,40 @@ class PaymentServiceTest {
         UUID publicId = UUID.randomUUID();
         when(paymentRepository.findByPublicId(publicId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.findByPublicId(publicId))
+        assertThatThrownBy(() -> paymentService.findByPublicId(publicId, null))
                 .isInstanceOf(PaymentNotFoundException.class)
                 .hasMessage("Payment with id %s not found".formatted(publicId));
     }
 
     @Test
-    @DisplayName("Should find all payments for booking with pagination")
+    @DisplayName("Should find all payments for booking with pagination for admin (null callerUserId)")
     void shouldFindAllPaymentsForBooking() {
         Payment payment = new Payment(bookingId, userId, AMOUNT, CURRENCY, idempotencyKey);
         Pageable pageable = PageRequest.of(0, 10);
         Page<Payment> page = new PageImpl<>(List.of(payment), pageable, 1);
         when(paymentRepository.findByBookingId(eq(bookingId), eq(pageable))).thenReturn(page);
 
-        Page<PaymentResponse> result = paymentService.findAllPayments(bookingId, pageable);
+        Page<PaymentResponse> result = paymentService.findAllPayments(bookingId, null, pageable);
 
         assertThat(result.getTotalElements()).isOne();
         assertThat(result.getContent().getFirst().bookingId()).isEqualTo(bookingId);
         verify(paymentRepository).findByBookingId(bookingId, pageable);
+    }
+
+    @Test
+    @DisplayName("Should find all payments for booking with pagination for user")
+    void shouldFindAllPaymentsForBookingAndUser() {
+        Payment payment = new Payment(bookingId, userId, AMOUNT, CURRENCY, idempotencyKey);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Payment> page = new PageImpl<>(List.of(payment), pageable, 1);
+        when(paymentRepository.findByBookingIdAndUserId(eq(bookingId), eq(userId), eq(pageable)))
+                .thenReturn(page);
+
+        Page<PaymentResponse> result = paymentService.findAllPayments(bookingId, userId, pageable);
+
+        assertThat(result.getTotalElements()).isOne();
+        assertThat(result.getContent().getFirst().bookingId()).isEqualTo(bookingId);
+        verify(paymentRepository).findByBookingIdAndUserId(bookingId, userId, pageable);
     }
 
     private static DataIntegrityViolationException idempotencyKeyViolation() {

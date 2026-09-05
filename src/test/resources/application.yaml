@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: app
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration/resources
+      - classpath:db/migration/booking
+      - classpath:db/migration/payments
+      - classpath:db/migration/notifications
+      - classpath:db/migration/auth
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+jwt:
+  secret: TyG9V2dyEE5X7M5RGuFHhjZvxyIlNlkqrjcdsGZElQ0123456789ab
+  expiration-ms: 86400000
+
+app:
+  admin:
+    email: admin@test.com
+    password: Admin@P@ss1
+    name: Admin

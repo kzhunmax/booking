@@ -86,10 +86,26 @@ class BookingRepositoryTest {
         bookingRepository.saveAndFlush(outsideWindow);
 
         Page<Booking> page = bookingRepository.findAll(
-                BookingSpecifications.filter(roomA, BookingStatus.PENDING, start, end), PageRequest.of(0, 10));
+                BookingSpecifications.filter(roomA, null, BookingStatus.PENDING, start, end), PageRequest.of(0, 10));
 
         assertThat(page.getTotalElements()).isOne();
         assertThat(page.getContent().getFirst().getPublicId()).isEqualTo(matching.getPublicId());
+    }
+
+    @Test
+    @DisplayName("Should filter bookings by customerEmail")
+    void shouldFilterBookingsByCustomerEmail() {
+        UUID resourceId = UUID.randomUUID();
+        Instant start = BASE.plus(Duration.ofHours(4));
+        Instant end = BASE.plus(Duration.ofHours(5));
+        Booking bookingA = booking(resourceId, start, end);
+        bookingRepository.saveAndFlush(bookingA);
+
+        Page<Booking> page = bookingRepository.findAll(
+                BookingSpecifications.filter(null, "customer@example.com", null, null, null), PageRequest.of(0, 10));
+
+        assertThat(page.getTotalElements()).isGreaterThanOrEqualTo(1);
+        assertThat(page.getContent()).allMatch(b -> b.getCustomerEmail().equals("customer@example.com"));
     }
 
     @Test

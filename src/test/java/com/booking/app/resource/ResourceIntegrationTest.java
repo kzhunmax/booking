@@ -3,6 +3,8 @@ package com.booking.app.resource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.booking.app.TestcontainersConfiguration;
+import com.booking.app.auth.AuthResponse;
+import com.booking.app.auth.internal.web.LoginRequest;
 import com.booking.app.resource.internal.domain.Resource;
 import com.booking.app.resource.internal.infrastructure.ResourceRepository;
 import com.booking.app.resource.internal.web.CreateResourceRequest;
@@ -17,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
@@ -43,6 +47,25 @@ class ResourceIntegrationTest {
 
     @Autowired
     private ResourceRepository resourceRepository;
+
+    private String adminToken;
+
+    @BeforeEach
+    void setUp() {
+        AuthResponse auth = restTestClient
+                .post()
+                .uri("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new LoginRequest("admin@test.com", "Admin@P@ss1"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(AuthResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(auth).isNotNull();
+        adminToken = auth.token();
+    }
 
     private static String uniqueName(String prefix) {
         return prefix + "-" + UUID.randomUUID();
@@ -112,6 +135,7 @@ class ResourceIntegrationTest {
         restTestClient
                 .delete()
                 .uri("/api/resources/{publicId}", created.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .exchange()
                 .expectStatus()
                 .isNoContent();
@@ -157,6 +181,7 @@ class ResourceIntegrationTest {
         ResourceResponse body = restTestClient
                 .post()
                 .uri("/api/resources")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateResourceRequest(name, description, DEFAULT_PRICE, DEFAULT_CURRENCY))
                 .exchange()
@@ -173,6 +198,7 @@ class ResourceIntegrationTest {
         return restTestClient
                 .post()
                 .uri("/api/resources")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateResourceRequest(name, description, DEFAULT_PRICE, DEFAULT_CURRENCY))
                 .exchange()
@@ -183,6 +209,7 @@ class ResourceIntegrationTest {
         return restTestClient
                 .put()
                 .uri("/api/resources/{publicId}", publicId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new UpdateResourceRequest(name, description))
                 .exchange()

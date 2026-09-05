@@ -3,6 +3,9 @@ package com.booking.app.booking;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.booking.app.TestcontainersConfiguration;
+import com.booking.app.auth.AuthResponse;
+import com.booking.app.auth.internal.web.LoginRequest;
+import com.booking.app.auth.internal.web.RegisterRequest;
 import com.booking.app.booking.internal.web.CreateBookingRequest;
 import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceStatus;
@@ -20,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
@@ -44,6 +49,13 @@ class BookingIntegrationTest {
     @Autowired
     private RestTestClient restTestClient;
 
+    private String customerToken;
+
+    @BeforeEach
+    void setUp() {
+        customerToken = registerAndLogin("booking-customer-" + UUID.randomUUID() + "@example.com", "SecureP@ss1");
+    }
+
     @Test
     @DisplayName("Create booking then GET by publicId returns the same PENDING booking")
     void shouldCreateBookingAndFetchByPublicId() {
@@ -54,6 +66,7 @@ class BookingIntegrationTest {
         BookingResponse fetched = restTestClient
                 .get()
                 .uri("/api/bookings/{publicId}", created.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + customerToken)
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -65,7 +78,6 @@ class BookingIntegrationTest {
         assertThat(fetched.publicId()).isEqualTo(created.publicId());
         assertThat(fetched.resourceId()).isEqualTo(resource.publicId());
         assertThat(fetched.status()).isEqualTo(BookingStatus.PENDING);
-        assertThat(fetched.customerEmail()).isEqualTo("customer@example.com");
         assertThat(fetched.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(50.00));
         assertThat(fetched.currency()).isEqualTo("USD");
     }
@@ -80,6 +92,7 @@ class BookingIntegrationTest {
         restTestClient
                 .post()
                 .uri("/api/bookings")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + customerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(bookingRequest(resource.publicId(), slot.plusHours(1), slot.plusHours(3)))
                 .exchange()
@@ -100,6 +113,7 @@ class BookingIntegrationTest {
         restTestClient
                 .post()
                 .uri("/api/bookings/{publicId}/cancel", original.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + customerToken)
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -155,6 +169,7 @@ class BookingIntegrationTest {
         restTestClient
                 .post()
                 .uri("/api/bookings")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + customerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(bookingRequest(resource.publicId(), slot, slot.plusHours(1)))
                 .exchange()
@@ -200,6 +215,7 @@ class BookingIntegrationTest {
         BookingResponse body = restTestClient
                 .post()
                 .uri("/api/bookings")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + customerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(bookingRequest(resourceId, startsAt, endsAt))
                 .exchange()
@@ -216,6 +232,7 @@ class BookingIntegrationTest {
         return restTestClient
                 .post()
                 .uri("/api/bookings")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + customerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(bookingRequest(resourceId, startsAt, endsAt))
                 .exchange()
@@ -223,12 +240,36 @@ class BookingIntegrationTest {
     }
 
     private static CreateBookingRequest bookingRequest(UUID resourceId, ZonedDateTime startsAt, ZonedDateTime endsAt) {
-        return new CreateBookingRequest(
-                resourceId, "customer@example.com", "John Doe", startsAt.toInstant(), endsAt.toInstant());
+        return new CreateBookingRequest(resourceId, startsAt.toInstant(), endsAt.toInstant());
     }
 
     private static ZonedDateTime tomorrowAt(int hour) {
         return LocalDate.now(ZoneOffset.UTC).plusDays(2).atTime(hour, 0).atZone(ZoneOffset.UTC);
+    }
+
+    private String registerAndLogin(String email, String password) {
+        restTestClient
+                .post()
+                .uri("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new RegisterRequest(email, "Test User", password))
+                .exchange()
+                .expectStatus()
+                .isCreated();
+
+        AuthResponse auth = restTestClient
+                .post()
+                .uri("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new LoginRequest(email, password))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(AuthResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(auth).isNotNull();
+        return auth.token();
     }
 
     private static <T> List<T> runConcurrently(Callable<T> first, Callable<T> second) throws Exception {

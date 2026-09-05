@@ -3,6 +3,8 @@ package com.booking.app.payment;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.booking.app.TestcontainersConfiguration;
+import com.booking.app.auth.AuthResponse;
+import com.booking.app.auth.internal.web.LoginRequest;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.internal.web.CreateBookingRequest;
@@ -23,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
@@ -49,6 +53,25 @@ class PaymentIntegrationTest {
 
     @Autowired
     private PaymentRepository paymentRepository;
+
+    private String adminToken;
+
+    @BeforeEach
+    void setUp() {
+        AuthResponse auth = restTestClient
+                .post()
+                .uri("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new LoginRequest("admin@test.com", "Admin@P@ss1"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(AuthResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(auth).isNotNull();
+        adminToken = auth.token();
+    }
 
     private static ZonedDateTime tomorrowAt(int hour) {
         return LocalDate.now(ZoneOffset.UTC).plusDays(2).atTime(hour, 0).atZone(ZoneOffset.UTC);
@@ -90,6 +113,7 @@ class PaymentIntegrationTest {
         PaymentResponse payment = restTestClient
                 .post()
                 .uri("/api/payments")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .header("Idempotency-Key", idempotencyKey.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreatePaymentRequest(booking.publicId(), userId))
@@ -111,6 +135,7 @@ class PaymentIntegrationTest {
         BookingResponse updatedBooking = restTestClient
                 .get()
                 .uri("/api/bookings/{publicId}", booking.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -124,6 +149,7 @@ class PaymentIntegrationTest {
         PaymentResponse fetched = restTestClient
                 .get()
                 .uri("/api/payments/{publicId}", payment.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -150,6 +176,7 @@ class PaymentIntegrationTest {
         restTestClient
                 .get()
                 .uri("/api/payments?bookingId={bookingId}", booking.publicId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -168,6 +195,7 @@ class PaymentIntegrationTest {
         restTestClient
                 .get()
                 .uri("/api/payments/{publicId}", UUID.randomUUID())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .exchange()
                 .expectStatus()
                 .isNotFound()
@@ -192,6 +220,7 @@ class PaymentIntegrationTest {
         PaymentResponse second = restTestClient
                 .post()
                 .uri("/api/payments")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .header("Idempotency-Key", idempotencyKey.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreatePaymentRequest(booking.publicId(), userId))
@@ -223,6 +252,7 @@ class PaymentIntegrationTest {
         restTestClient
                 .post()
                 .uri("/api/payments")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .header("Idempotency-Key", sharedKey.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreatePaymentRequest(booking2.publicId(), userId))
@@ -249,6 +279,7 @@ class PaymentIntegrationTest {
         restTestClient
                 .post()
                 .uri("/api/payments")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .header("Idempotency-Key", secondKey.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreatePaymentRequest(booking.publicId(), userId))
@@ -286,6 +317,7 @@ class PaymentIntegrationTest {
         return restTestClient
                 .post()
                 .uri("/api/payments")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .header("Idempotency-Key", idempotencyKey.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreatePaymentRequest(bookingId, userId))
@@ -298,6 +330,7 @@ class PaymentIntegrationTest {
         ResourceResponse body = restTestClient
                 .post()
                 .uri("/api/resources")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateResourceRequest(
                         "room-" + UUID.randomUUID(), "integration room", DEFAULT_PRICE, DEFAULT_CURRENCY))
@@ -315,9 +348,9 @@ class PaymentIntegrationTest {
         BookingResponse body = restTestClient
                 .post()
                 .uri("/api/bookings")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new CreateBookingRequest(
-                        resourceId, "customer@example.com", "John Doe", startsAt.toInstant(), endsAt.toInstant()))
+                .body(new CreateBookingRequest(resourceId, startsAt.toInstant(), endsAt.toInstant()))
                 .exchange()
                 .expectStatus()
                 .isCreated()
