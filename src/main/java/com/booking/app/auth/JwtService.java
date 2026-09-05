@@ -1,68 +1,16 @@
 package com.booking.app.auth;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.UUID;
-import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Service;
 
-@Service
-public class JwtService {
+public interface JwtService {
+    String generateToken(String subject, String role, UUID userId);
 
-    private final SecretKey secretKey;
-    private final long expirationMs;
+    String extractSubject(String token);
 
-    public JwtService(@Value("${jwt.secret}") String secret, @Value("${jwt.expiration-ms}") long expirationMs) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
-    }
+    String extractRole(String token);
 
-    public String generateToken(String subject, String role, UUID userId) {
-        Date now = new Date();
-        Date expiration = new Date(now.getTime() + expirationMs);
-        return Jwts.builder()
-                .subject(subject)
-                .issuedAt(now)
-                .claim("userId", userId.toString())
-                .claim("role", role)
-                .expiration(expiration)
-                .signWith(secretKey)
-                .compact();
-    }
+    UUID extractUserId(String token);
 
-    public String extractSubject(String token) {
-        return parseClaims(token).getSubject();
-    }
-
-    public String extractRole(String token) {
-        return parseClaims(token).get("role", String.class);
-    }
-
-    public UUID extractUserId(String token) {
-        String userId = parseClaims(token).get("userId", String.class);
-        return UUID.fromString(userId);
-    }
-
-    public boolean isValid(String token, UserDetails userDetails) {
-        String subject = extractSubject(token);
-
-        return subject.equals(userDetails.getUsername()) && !isExpired(token);
-    }
-
-    private boolean isExpired(String token) {
-        return parseClaims(token).getExpiration().before(new Date());
-    }
-
-    private Claims parseClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
+    boolean isValid(String token, UserDetails userDetails);
 }
