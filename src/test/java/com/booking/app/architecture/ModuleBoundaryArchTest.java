@@ -136,13 +136,13 @@ class ModuleBoundaryArchTest {
             .because("notifications only care about sending messages, not payment entities");
 
     @ArchTest
-    static final ArchRule NOTIFICATION_MODULE_IS_INDEPENDENT_OF_THE_BOOKING_MODULE = noClasses()
+    static final ArchRule BOOKING_MODULE_IS_INDEPENDENT_OF_THE_NOTIFICATION_MODULE = noClasses()
             .that()
-            .resideInAPackage(NOTIFICATION_API_PACKAGE + "..")
+            .resideInAPackage(BOOKING_API_PACKAGE + "..")
             .should()
             .dependOnClassesThat()
-            .resideInAPackage(BOOKING_API_PACKAGE + "..")
-            .because("notifications are invoked with primitive IDs and strings, not booking internal domain models");
+            .resideInAPackage(NOTIFICATION_API_PACKAGE + "..")
+            .because("bookings publish domain events and never call notifications directly");
 
     @ArchTest
     static final ArchRule BOOKING_MODULE_IS_INDEPENDENT_OF_THE_PAYMENT_MODULE = noClasses()

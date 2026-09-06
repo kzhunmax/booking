@@ -1,6 +1,8 @@
 package com.booking.app.booking.internal.application;
 
 import com.booking.app.booking.AvailableSlotsResponse;
+import com.booking.app.booking.BookingCancelledEvent;
+import com.booking.app.booking.BookingConfirmedEvent;
 import com.booking.app.booking.BookingNotFoundException;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
@@ -13,7 +15,6 @@ import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.booking.internal.infrastructure.BookingMapper;
 import com.booking.app.booking.internal.infrastructure.BookingRepository;
 import com.booking.app.booking.internal.infrastructure.BookingSpecifications;
-import com.booking.app.notification.NotificationService;
 import com.booking.app.resource.ResourceResponse;
 import com.booking.app.resource.ResourceService;
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,17 +45,17 @@ public class DefaultBookingService implements BookingService {
     private final BookingRepository bookingRepository;
     private final Clock clock;
     private final ResourceService resourceService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DefaultBookingService(
             BookingRepository bookingRepository,
             Clock clock,
             ResourceService resourceService,
-            NotificationService notificationService) {
+            ApplicationEventPublisher eventPublisher) {
         this.bookingRepository = bookingRepository;
         this.clock = clock;
         this.resourceService = resourceService;
-        this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
     }
 
     private static Instant later(Instant a, Instant b) {
@@ -106,8 +108,8 @@ public class DefaultBookingService implements BookingService {
         found.cancel(clock.instant());
         persist(found);
         log.info("Booking cancelled: publicId={}", publicId);
-        notificationService.sendBookingCancelled(
-                found.getPublicId(), found.getCustomerEmail(), found.getCustomerName());
+        eventPublisher.publishEvent(
+                new BookingCancelledEvent(found.getPublicId(), found.getCustomerEmail(), found.getCustomerName()));
         return BookingMapper.toResponse(found);
     }
 
@@ -130,8 +132,8 @@ public class DefaultBookingService implements BookingService {
         found.confirm();
         persist(found);
         log.info("Booking confirmed: publicId={}", publicId);
-        notificationService.sendBookingConfirmed(
-                found.getPublicId(), found.getCustomerEmail(), found.getCustomerName());
+        eventPublisher.publishEvent(
+                new BookingConfirmedEvent(found.getPublicId(), found.getCustomerEmail(), found.getCustomerName()));
         return BookingMapper.toResponse(found);
     }
 

@@ -15,7 +15,6 @@ import com.booking.app.booking.internal.domain.BookingInterval;
 import com.booking.app.booking.internal.domain.BookingPricing;
 import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.booking.internal.infrastructure.BookingRepository;
-import com.booking.app.notification.NotificationService;
 import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
 import com.booking.app.resource.ResourceNotFoundException;
 import com.booking.app.resource.ResourceResponse;
@@ -38,6 +37,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -62,7 +62,7 @@ class BookingServiceTest {
     private ResourceService resourceService;
 
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     private BookingService bookingService;
     private UUID resourceId;
@@ -71,7 +71,7 @@ class BookingServiceTest {
     @BeforeEach
     void setUp() {
         bookingService = new DefaultBookingService(
-                bookingRepository, Clock.fixed(NOW, ZoneOffset.UTC), resourceService, notificationService);
+                bookingRepository, Clock.fixed(NOW, ZoneOffset.UTC), resourceService, eventPublisher);
         resourceId = UUID.randomUUID();
         testBooking = newBooking(resourceId, STARTS_AT, ENDS_AT);
     }
@@ -215,8 +215,9 @@ class BookingServiceTest {
 
         assertThat(response.status()).isEqualTo(BookingStatus.CONFIRMED);
         verify(bookingRepository).saveAndFlush(testBooking);
-        verify(notificationService)
-                .sendBookingConfirmed(publicId, testBooking.getCustomerEmail(), testBooking.getCustomerName());
+        verify(eventPublisher)
+                .publishEvent(new BookingConfirmedEvent(
+                        publicId, testBooking.getCustomerEmail(), testBooking.getCustomerName()));
     }
 
     @Test
@@ -227,7 +228,7 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> bookingService.confirm(publicId)).isInstanceOf(BookingNotFoundException.class);
         verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
-        verify(notificationService, never()).sendBookingConfirmed(any(), any(), any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @ParameterizedTest
@@ -246,8 +247,9 @@ class BookingServiceTest {
 
         assertThat(response.status()).isEqualTo(BookingStatus.CANCELLED);
         verify(bookingRepository).saveAndFlush(booking);
-        verify(notificationService)
-                .sendBookingCancelled(publicId, booking.getCustomerEmail(), booking.getCustomerName());
+        verify(eventPublisher)
+                .publishEvent(
+                        new BookingCancelledEvent(publicId, booking.getCustomerEmail(), booking.getCustomerName()));
     }
 
     @Test
