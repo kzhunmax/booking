@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
     implementation(libs.spring.boot.starter.mail)
     implementation(libs.jjwt.api)
+    implementation(libs.springdoc)
     developmentOnly(libs.spring.boot.devtools)
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.jjwt.impl)
