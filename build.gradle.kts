@@ -44,12 +44,17 @@ repositories {
     mavenCentral()
 }
 
+configurations.all {
+    exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
+}
+
 dependencies {
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.flyway)
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.webmvc)
+    implementation(libs.spring.boot.starter.log4j2)
     implementation(libs.flyway.database.postgresql)
     implementation(libs.spring.boot.starter.mail)
     implementation(libs.jjwt.api)

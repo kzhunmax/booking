@@ -1,16 +1,16 @@
 [versions]
 java = "25"
-spring-boot = "4.1.1"
+spring-boot = "4.1.2"
 spring-dependency-management = "1.1.7"
-spotless = "8.10.0"
-errorprone-plugin = "5.1.0"
-checkstyle = "14.0.0"
-palantir-java-format = "2.97.0"
+spotless = "8.10.2"
+errorprone-plugin = "5.1.1"
+checkstyle = "14.3.0"
+palantir-java-format = "2.102.0"
 jacoco = "0.8.15"
 jjwt = "0.13.0"
-equalsverifier = "4.5.1"
-archunit = "1.5.0"
-errorprone-core = "2.50.0"
+equalsverifier = "4.5.2"
+archunit = "1.5.1"
+errorprone-core = "2.51.0"
 springdoc = "3.2.0"
 
 [plugins]
@@ -45,6 +45,7 @@ spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
 spring-boot-starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2" }
 spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 spring-boot-starter-data-jpa-test = { module = "org.springframework.boot:spring-boot-starter-data-jpa-test" }
 spring-boot-starter-flyway-test = { module = "org.springframework.boot:spring-boot-starter-flyway-test" }
