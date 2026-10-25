@@ -175,6 +175,76 @@ class BookingRepositoryTest {
         assertThat(saved.getStatus()).isEqualTo(BookingStatus.PENDING);
     }
 
+    @Test
+    @DisplayName("Should calculate total revenue using JPQL @Query")
+    void shouldCalculateTotalRevenueViaJpqlQuery() {
+        UUID resourceId = UUID.randomUUID();
+        Instant t1 = BASE.plus(Duration.ofHours(4));
+        Instant t2 = BASE.plus(Duration.ofHours(5));
+        Instant t3 = BASE.plus(Duration.ofHours(6));
+
+        Booking b1 = booking(resourceId, t1, t2);
+        Booking b2 = booking(resourceId, t2, t3);
+        b1.confirm();
+        b2.confirm();
+        bookingRepository.saveAndFlush(b1);
+        bookingRepository.saveAndFlush(b2);
+
+        BigDecimal revenue =
+                bookingRepository.calculateTotalRevenue(BookingStatus.CONFIRMED, BASE, BASE.plus(Duration.ofDays(1)));
+
+        assertThat(revenue).isEqualByComparingTo(BigDecimal.valueOf(200.0));
+    }
+
+    @Test
+    @DisplayName("Should summarize revenue by resource using JPQL record projection")
+    void shouldSummarizeRevenueByResourceViaJpqlRecordProjection() {
+        UUID res1 = UUID.randomUUID();
+        UUID res2 = UUID.randomUUID();
+
+        Booking b1 = booking(res1, BASE.plus(Duration.ofHours(4)), BASE.plus(Duration.ofHours(5)));
+        Booking b2 = booking(res1, BASE.plus(Duration.ofHours(6)), BASE.plus(Duration.ofHours(7)));
+        Booking b3 = booking(res2, BASE.plus(Duration.ofHours(8)), BASE.plus(Duration.ofHours(9)));
+
+        bookingRepository.saveAndFlush(b1);
+        bookingRepository.saveAndFlush(b2);
+        bookingRepository.saveAndFlush(b3);
+
+        List<BookingRevenueSummary> summaries = bookingRepository.summarizeRevenueByResource(
+                BookingStatus.PENDING, BASE, BASE.plus(Duration.ofDays(1)));
+
+        assertThat(summaries).hasSize(2);
+        assertThat(summaries.getFirst().resourceId()).isEqualTo(res1);
+        assertThat(summaries.getFirst().totalBookings()).isEqualTo(2);
+        assertThat(summaries.getFirst().totalRevenue()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
+
+        assertThat(summaries.get(1).resourceId()).isEqualTo(res2);
+        assertThat(summaries.get(1).totalBookings()).isEqualTo(1);
+        assertThat(summaries.get(1).totalRevenue()).isEqualByComparingTo(BigDecimal.valueOf(100.0));
+    }
+
+    @Test
+    @DisplayName("Should find top resources by revenue using Native SQL query and interface projection")
+    void shouldFindTopResourcesByRevenueViaNativeSqlQueryInterfaceProjection() {
+        UUID res1 = UUID.randomUUID();
+        UUID res2 = UUID.randomUUID();
+
+        Booking b1 = booking(res1, BASE.plus(Duration.ofHours(4)), BASE.plus(Duration.ofHours(5)));
+        Booking b2 = booking(res1, BASE.plus(Duration.ofHours(6)), BASE.plus(Duration.ofHours(7)));
+        Booking b3 = booking(res2, BASE.plus(Duration.ofHours(8)), BASE.plus(Duration.ofHours(9)));
+
+        bookingRepository.saveAndFlush(b1);
+        bookingRepository.saveAndFlush(b2);
+        bookingRepository.saveAndFlush(b3);
+
+        List<ResourceBookingSummary> topResources = bookingRepository.findTopResourcesByRevenue("PENDING", 1);
+
+        assertThat(topResources).hasSize(1);
+        assertThat(topResources.getFirst().getResourceId()).isEqualTo(res1.toString());
+        assertThat(topResources.getFirst().getTotalBookings()).isEqualTo(2L);
+        assertThat(topResources.getFirst().getTotalRevenue()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
+    }
+
     private static Booking booking(UUID resourceId, Instant startsAt, Instant endsAt) {
         Instant now = startsAt.minus(Duration.ofHours(4));
         return new Booking(
