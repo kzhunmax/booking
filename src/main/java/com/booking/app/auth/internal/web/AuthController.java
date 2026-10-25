@@ -4,20 +4,13 @@ import com.booking.app.auth.AuthResponse;
 import com.booking.app.auth.AuthService;
 import com.booking.app.auth.UserResponse;
 import com.booking.app.common.security.SecurityUser;
-import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
-@RequestMapping("/api/auth")
-public class AuthController {
+public class AuthController implements AuthApi {
 
     private final AuthService authService;
 
@@ -25,8 +18,8 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+    @Override
+    public ResponseEntity<UserResponse> register(RegisterRequest request) {
         UserResponse created = authService.register(request.email(), request.password(), request.name());
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/users/{id}")
@@ -35,13 +28,13 @@ public class AuthController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    @Override
+    public ResponseEntity<AuthResponse> login(LoginRequest request) {
         return ResponseEntity.ok(authService.login(request.email(), request.password()));
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal SecurityUser currentUser) {
+    @Override
+    public ResponseEntity<UserResponse> getCurrentUser(SecurityUser currentUser) {
         return ResponseEntity.ok(authService.getProfile(currentUser.publicId()));
     }
 }
