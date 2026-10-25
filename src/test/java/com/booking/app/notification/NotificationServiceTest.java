@@ -31,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -45,6 +46,9 @@ class NotificationServiceTest {
     @Mock
     private JavaMailSender javaMailSender;
 
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
     @Captor
     private ArgumentCaptor<Notification> notificationCaptor;
 
@@ -57,7 +61,7 @@ class NotificationServiceTest {
     @BeforeEach
     void setUp() {
         notificationService = new DefaultNotificationService(
-                notificationRepository, javaMailSender, Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC));
+                notificationRepository, javaMailSender, messagingTemplate, Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC));
         bookingId = UUID.randomUUID();
     }
 
@@ -83,6 +87,12 @@ class NotificationServiceTest {
         assertThat(sent.getStatus()).isEqualTo(NotificationStatus.SENT);
         assertThat(sent.getSentAt()).isEqualTo(FIXED_INSTANT);
         assertThat(sent.getRecipient()).isEqualTo(CUSTOMER_EMAIL);
+
+        verify(messagingTemplate)
+                .convertAndSend(
+                        "/topic/bookings",
+                        new BookingNotificationPayload(
+                                "BOOKING_CONFIRMED", bookingId, CUSTOMER_EMAIL, CUSTOMER_NAME, FIXED_INSTANT));
 
         InOrder inOrder = inOrder(notificationRepository, javaMailSender);
         inOrder.verify(notificationRepository).save(any(Notification.class));
@@ -112,6 +122,12 @@ class NotificationServiceTest {
         assertThat(sent.getStatus()).isEqualTo(NotificationStatus.SENT);
         assertThat(sent.getSentAt()).isEqualTo(FIXED_INSTANT);
         assertThat(sent.getRecipient()).isEqualTo(CUSTOMER_EMAIL);
+
+        verify(messagingTemplate)
+                .convertAndSend(
+                        "/topic/bookings",
+                        new BookingNotificationPayload(
+                                "BOOKING_CANCELLED", bookingId, CUSTOMER_EMAIL, CUSTOMER_NAME, FIXED_INSTANT));
     }
 
     @Test

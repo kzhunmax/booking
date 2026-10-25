@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.spring.boot.starter.log4j2)
     implementation(libs.flyway.database.postgresql)
     implementation(libs.spring.boot.starter.mail)
+    implementation(libs.spring.boot.starter.websocket)
     implementation(libs.jjwt.api)
     implementation(libs.springdoc)
     implementation(libs.poi.ooxml)
