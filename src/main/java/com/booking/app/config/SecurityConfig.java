@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/bookings/available-slots")
                         .permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+                        .permitAll()
                         .anyRequest()
                         .authenticated())
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(

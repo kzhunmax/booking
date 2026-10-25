@@ -13,3 +13,9 @@ app:
 
 jwt:
   secret: ${JWT_SECRET}
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
