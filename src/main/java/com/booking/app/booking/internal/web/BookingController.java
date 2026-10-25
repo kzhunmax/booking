@@ -13,7 +13,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -62,5 +64,15 @@ public class BookingController implements BookingApi {
     @Override
     public ResponseEntity<BookingResponse> cancel(UUID publicId, SecurityUser currentUser) {
         return ResponseEntity.ok(bookingService.cancel(publicId, currentUser.email(), currentUser.isAdmin()));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportToExcel(Instant from, Instant to, BookingStatus status) {
+        byte[] excelBytes = bookingService.exportBookingsToExcel(from, to, status);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"bookings-report.xlsx\"")
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excelBytes);
     }
 }

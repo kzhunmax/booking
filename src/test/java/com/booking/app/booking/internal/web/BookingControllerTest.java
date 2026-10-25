@@ -493,6 +493,44 @@ class BookingControllerTest {
     }
 
     // -------------------------------------------------------------------------
+    // GET /api/bookings/export
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /api/bookings/export - returns 200 OK with excel file for admin")
+    void shouldExportBookingsToExcelForAdmin() throws Exception {
+        byte[] excelBytes = new byte[] {0x50, 0x4B, 0x03, 0x04}; // PK header
+        when(bookingService.exportBookingsToExcel(any(), any(), any())).thenReturn(excelBytes);
+
+        mockMvc.perform(get("/api/bookings/export")
+                        .with(user(mockSecurityUser(UUID.randomUUID(), "admin@test.com", "Admin", true))))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"bookings-report.xlsx\""))
+                .andExpect(header().string(
+                                "Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+
+        verify(bookingService).exportBookingsToExcel(null, null, null);
+    }
+
+    @Test
+    @DisplayName("GET /api/bookings/export - returns 403 Forbidden for customer role")
+    void shouldReturnForbiddenWhenCustomerTriesToExport() throws Exception {
+        mockMvc.perform(get("/api/bookings/export")
+                        .with(user(mockSecurityUser(CUSTOMER_PUBLIC_ID, CUSTOMER_EMAIL, CUSTOMER_NAME, false))))
+                .andExpect(status().isForbidden());
+
+        verify(bookingService, never()).exportBookingsToExcel(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /api/bookings/export - returns 401 Unauthorized when not authenticated")
+    void shouldReturnUnauthorizedWhenNotAuthenticatedForExport() throws Exception {
+        mockMvc.perform(get("/api/bookings/export")).andExpect(status().isUnauthorized());
+
+        verify(bookingService, never()).exportBookingsToExcel(any(), any(), any());
+    }
+
+    // -------------------------------------------------------------------------
     // helpers
     // -------------------------------------------------------------------------
 

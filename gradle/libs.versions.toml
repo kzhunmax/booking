@@ -12,6 +12,7 @@ equalsverifier = "4.5.2"
 archunit = "1.5.1"
 errorprone-core = "2.51.0"
 springdoc = "3.2.0"
+poi = "6.0.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -22,6 +23,9 @@ errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 [libraries]
 # OpenAPI
 springdoc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+# Apache POI
+poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
 
 # JWT
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }

@@ -6,6 +6,7 @@ import com.booking.app.booking.BookingStatus;
 import com.booking.app.common.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -120,4 +121,29 @@ public interface BookingApi {
     ResponseEntity<BookingResponse> cancel(
             @Parameter(description = "Public UUID of the booking") @PathVariable UUID publicId,
             @Parameter(hidden = true) @AuthenticationPrincipal SecurityUser currentUser);
+
+    @Operation(
+            summary = "Export bookings report to Excel (.xlsx)",
+            description = "Generates and downloads an Excel spreadsheet report of bookings. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Excel spreadsheet generated successfully",
+                content = @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
+    @GetMapping(value = "/export", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ResponseEntity<byte[]> exportToExcel(
+            @Parameter(description = "Optional filter start timestamp (ISO-8601 UTC)")
+                    @RequestParam(required = false)
+                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    Instant from,
+            @Parameter(description = "Optional filter end timestamp (ISO-8601 UTC)")
+                    @RequestParam(required = false)
+                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    Instant to,
+            @Parameter(description = "Optional filter by booking status") @RequestParam(required = false)
+                    BookingStatus status);
 }

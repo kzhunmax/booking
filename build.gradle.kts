@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.spring.boot.starter.mail)
     implementation(libs.jjwt.api)
     implementation(libs.springdoc)
+    implementation(libs.poi.ooxml)
     developmentOnly(libs.spring.boot.devtools)
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.jjwt.impl)

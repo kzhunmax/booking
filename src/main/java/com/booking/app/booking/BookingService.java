@@ -23,4 +23,6 @@ public interface BookingService {
     AvailableSlotsResponse findAvailableSlots(UUID resourceId, LocalDate date);
 
     BookingResponse confirm(UUID publicId);
+
+    byte[] exportBookingsToExcel(Instant from, Instant to, BookingStatus status);
 }

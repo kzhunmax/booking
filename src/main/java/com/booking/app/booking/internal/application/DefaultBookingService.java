@@ -182,4 +182,13 @@ public class DefaultBookingService implements BookingService {
         String message = e.getMostSpecificCause().getMessage();
         return message != null && message.contains(OVERLAP_BOOKING_CONSTRAINT);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportBookingsToExcel(Instant from, Instant to, BookingStatus status) {
+        log.info("Generating Excel bookings report: from={}, to={}, status={}", from, to, status);
+        Specification<Booking> spec = BookingSpecifications.filter(null, null, status, from, to);
+        List<Booking> bookings = bookingRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "startsAt"));
+        return BookingExcelExporter.exportToExcel(bookings);
+    }
 }
