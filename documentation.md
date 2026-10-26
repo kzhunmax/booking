@@ -1,8 +1,8 @@
 # System rezerwacji wizyt i usług - dokumentacja projektu
 
-Przedmiot: Technologie backendowe 
-Uczelnia: WSPA w Lublinie
-Autor: Maksym Korshun
+Przedmiot: Technologie backendowe \
+Uczelnia: WSPA w Lublinie \
+Autor: Maksym Korshun \
 Repozytorium: https://github.com/kzhunmax/booking
 
 Technologie: Java 25, Spring Boot 4.1, Spring Data JPA, PostgreSQL, Flyway, Spring Security + JWT, Springdoc (Swagger), Log4j2, WebSocket (STOMP), Apache POI, Stripe API, Gradle.
@@ -116,72 +116,7 @@ Moduły komunikują się też zdarzeniami Springa: `BookingService` publikuje `B
 
 ### 3.3. Diagram przypadków użycia
 
-Kod źródłowy diagramu (PlantUML):
-
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-skinparam shadowing false
-skinparam actorStyle awesome
-
-actor "Gość" as Guest
-actor "Klient" as User
-actor "Administrator" as Admin
-actor "Stripe API\n(system zewnętrzny)" as Stripe <<system>>
-
-User --|> Guest
-Admin --|> User
-
-rectangle "System Rezerwacji Wizyt i Usług" {
-  usecase "UC-01\nRejestracja konta" as UC1
-  usecase "UC-02\nLogowanie (JWT)" as UC2
-  usecase "UC-03\nPrzeglądanie katalogu usług" as UC3
-
-  usecase "UC-04\nZłożenie rezerwacji terminu" as UC4
-  usecase "UC-05\nOpłacenie rezerwacji (Stripe)" as UC5
-  usecase "UC-06\nAnulowanie rezerwacji" as UC6
-  usecase "UC-07\nOdbiór powiadomień\n(WebSocket)" as UC7
-
-  usecase "UC-08\nZarządzanie zasobami (CRUD)" as UC8
-  usecase "UC-09\nEksport raportu do Excel (.xlsx)" as UC9
-  usecase "UC-10\nPrzegląd analityki przychodów" as UC10
-
-  usecase "Sprawdzenie dostępności\nterminu" as UCa
-  usecase "Weryfikacja tokenu JWT" as UCb
-  usecase "Wysłanie powiadomienia\nna kanał /topic/bookings" as UCc
-}
-
-Guest --> UC1
-Guest --> UC2
-Guest --> UC3
-
-User --> UC4
-User --> UC5
-User --> UC6
-User --> UC7
-
-Admin --> UC8
-Admin --> UC9
-Admin --> UC10
-
-UC4 ..> UCa : <<include>>
-UC4 ..> UCb : <<include>>
-UC5 ..> UCb : <<include>>
-UC6 ..> UCb : <<include>>
-UC8 ..> UCb : <<include>>
-UC9 ..> UCb : <<include>>
-UC10 ..> UCb : <<include>>
-
-UC5 ..> UCc : <<include>>
-UC6 ..> UCc : <<include>>
-UCc .> UC7 : <<extend>>
-
-UC5 --> Stripe : PaymentIntent\n(HTTP REST)
-@enduml
-@enduml
-```
-
+![diagram_uml.svg](diagram_uml.svg)
 ---
 
 ## 4. Najważniejsze obiekty w systemie
@@ -313,83 +248,7 @@ Baza to PostgreSQL. Strukturę tworzą migracje Flyway, po jednym katalogu na mo
 
 W bazie nie ma kluczy obcych (`FOREIGN KEY`) między modułami, bo moduły są niezależne. Powiązania są tylko logiczne: tabele odwołują się do siebie przez `public_id` albo adres e-mail. Na diagramie są zaznaczone linią przerywaną.
 
-```mermaid
-erDiagram
-    USERS ||..o{ BOOKINGS : "customer_email"
-    USERS ||..o{ PAYMENTS : "user_id"
-    RESOURCES ||..o{ BOOKINGS : "resource_id"
-    BOOKINGS ||..o{ PAYMENTS : "booking_id"
-    USERS ||..o{ NOTIFICATIONS : "recipient"
-
-    USERS {
-        bigint id PK
-        uuid public_id UK
-        bigint version
-        varchar email UK
-        varchar password_hash
-        varchar name
-        varchar role
-        varchar status
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    RESOURCES {
-        bigint id PK
-        uuid public_id UK
-        bigint version
-        varchar name
-        text description
-        varchar status
-        decimal price_per_hour
-        varchar price_currency
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    BOOKINGS {
-        bigint id PK
-        uuid public_id UK
-        bigint version
-        uuid resource_id
-        varchar customer_email
-        varchar customer_name
-        timestamptz starts_at
-        timestamptz ends_at
-        varchar status
-        decimal total_amount
-        varchar currency
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    PAYMENTS {
-        bigint id PK
-        uuid public_id UK
-        bigint version
-        uuid booking_id
-        uuid user_id
-        decimal amount
-        varchar currency
-        varchar status
-        uuid idempotency_key UK
-        varchar gateway_reference
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    NOTIFICATIONS {
-        bigint id PK
-        uuid public_id UK
-        varchar type
-        varchar recipient
-        varchar subject
-        text body
-        varchar status
-        timestamptz created_at
-        timestamptz sent_at
-    }
-```
+![diagram_erd.svg](./diagram_erd.svg)
 
 ### 6.2. Cel tabel
 
@@ -474,19 +333,19 @@ Alternatywnie można uruchomić aplikację na pustej bazie (Flyway sam stworzy s
 
 ## 8. Spełnienie wymagań z zadania
 
-| Wymaganie | Gdzie w projekcie |
-|---|---|
-| Więcej niż jeden kontroler | `AuthController`, `UserController`, `ResourceController`, `BookingController`, `PaymentController` |
-| Swagger | Springdoc, adnotacje w interfejsach `*Api`, konfiguracja w `OpenApiConfig`. Adres: `/swagger-ui/index.html`. |
-| JPA, CRUD | Encje `User`, `Resource`, `Booking`, `Payment`, `Notification` oraz repozytoria Spring Data. CRUD na usługach (`/api/resources`) i rezerwacjach (`/api/bookings`). |
-| `@Query` i natywne SQL | `BookingRepository`: `calculateTotalRevenue` i `summarizeRevenueByResource` (JPQL, endpoint `GET /api/bookings/revenue`), `findTopResourcesByRevenue` (`nativeQuery = true`, endpoint `GET /api/bookings/revenue/top`). Dodatkowo `JpaSpecificationExecutor` do filtrów (`BookingSpecifications`). |
-| Log4j2 | `log4j2-spring.xml`, w kodzie loggery w serwisach i handlerach błędów. |
-| Profile dev i prod | `application-dev.yaml` i `application-prod.yaml`, wspólne ustawienia w `application.yaml`. |
-| WebSocket | `WebSocketConfig`, wysyłka w `DefaultNotificationService` na `/topic/bookings`. |
-| Odczyt z pliku properties w klasach | `@Value` w `StripePaymentGateway` (`app.stripe.secret-key`), `AdminSeeder` (`app.admin.*`) i serwisie JWT (`jwt.*`). |
-| Komunikacja z drugą usługą | Stripe API (`StripePaymentGateway`, biblioteka `stripe-java`, obiekt `PaymentIntent`). Dodatkowo wysyłka e-maili przez SMTP. |
-| Raport w formacie xls | `BookingExcelExporter` (Apache POI, plik `.xlsx`), endpoint `GET /api/bookings/export`. |
-| Zdalne repozytorium | GitHub: https://github.com/kzhunmax/booking (zrzuty ekranu repozytorium dołączone do projektu). |
+| Wymaganie                           | Gdzie w projekcie                                                                                                                                                                                                                                                                                  |
+|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Więcej niż jeden kontroler          | `AuthController`, `UserController`, `ResourceController`, `BookingController`, `PaymentController`                                                                                                                                                                                                 |
+| Swagger                             | Springdoc, adnotacje w interfejsach `*Api`, konfiguracja w `OpenApiConfig`. Adres: `/swagger-ui/index.html`.                                                                                                                                                                                       |
+| JPA, CRUD                           | Encje `User`, `Resource`, `Booking`, `Payment`, `Notification` oraz repozytoria Spring Data. CRUD na usługach (`/api/resources`) i rezerwacjach (`/api/bookings`).                                                                                                                                 |
+| `@Query` i natywne SQL              | `BookingRepository`: `calculateTotalRevenue` i `summarizeRevenueByResource` (JPQL, endpoint `GET /api/bookings/revenue`), `findTopResourcesByRevenue` (`nativeQuery = true`, endpoint `GET /api/bookings/revenue/top`). Dodatkowo `JpaSpecificationExecutor` do filtrów (`BookingSpecifications`). |
+| Log4j2                              | `log4j2-spring.xml`, w kodzie loggery w serwisach i handlerach błędów.                                                                                                                                                                                                                             |
+| Profile dev i prod                  | `application-dev.yaml` i `application-prod.yaml`, wspólne ustawienia w `application.yaml`.                                                                                                                                                                                                         |
+| WebSocket                           | `WebSocketConfig`, wysyłka w `DefaultNotificationService` na `/topic/bookings`.                                                                                                                                                                                                                    |
+| Odczyt z pliku properties w klasach | `@Value` w `StripePaymentGateway` (`app.stripe.secret-key`), `AdminSeeder` (`app.admin.*`) i serwisie JWT (`jwt.*`).                                                                                                                                                                               |
+| Komunikacja z drugą usługą          | Stripe API (`StripePaymentGateway`, biblioteka `stripe-java`, obiekt `PaymentIntent`). Dodatkowo wysyłka e-maili przez SMTP.                                                                                                                                                                       |
+| Raport w formacie xls               | `BookingExcelExporter` (Apache POI, plik `.xlsx`), endpoint `GET /api/bookings/export`.                                                                                                                                                                                                            |
+| Zdalne repozytorium                 | GitHub: https://github.com/kzhunmax/booking (zrzuty ekranu repozytorium dołączone do projektu).                                                                                                                                                                                                    |
 
 ### Płatności w trybie testowym
 
