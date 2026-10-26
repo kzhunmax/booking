@@ -13,6 +13,7 @@ archunit = "1.5.1"
 errorprone-core = "2.51.0"
 springdoc = "3.2.0"
 poi = "6.0.0"
+stripe = "34.0.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -26,6 +27,9 @@ springdoc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", vers
 
 # Apache POI
 poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
+
+# Stripe
+stripe-java = { module = "com.stripe:stripe-java", version.ref = "stripe" }
 
 # JWT
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }

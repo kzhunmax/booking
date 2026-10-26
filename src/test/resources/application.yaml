@@ -23,3 +23,5 @@ app:
     email: admin@test.com
     password: Admin@P@ss1
     name: Admin
+  stripe:
+    secret-key: sk_test_mock

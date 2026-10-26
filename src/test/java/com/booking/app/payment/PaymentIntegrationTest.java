@@ -137,7 +137,7 @@ class PaymentIntegrationTest {
         assertThat(payment.status()).isEqualTo(PaymentStatus.SUCCEEDED);
         assertThat(payment.amount()).isEqualByComparingTo(BigDecimal.valueOf(100.00));
         assertThat(payment.currency()).isEqualTo(DEFAULT_CURRENCY);
-        assertThat(payment.gatewayReference()).startsWith("fake_gw_");
+        assertThat(payment.gatewayReference()).startsWith("pi_");
 
         BookingResponse updatedBooking = restTestClient
                 .get()

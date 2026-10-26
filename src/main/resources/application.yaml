@@ -16,3 +16,7 @@ spring:
 
 jwt:
   expiration-ms: 86400000
+
+app:
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:sk_test_mock}

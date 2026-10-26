@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.jjwt.api)
     implementation(libs.springdoc)
     implementation(libs.poi.ooxml)
+    implementation(libs.stripe.java)
     developmentOnly(libs.spring.boot.devtools)
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.jjwt.impl)

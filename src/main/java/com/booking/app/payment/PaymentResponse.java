@@ -31,5 +31,5 @@ public record PaymentResponse(
                 example = "e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a55")
         UUID idempotencyKey,
 
-        @Schema(description = "Payment gateway reference code", example = "fake_gw_8f5b8e99-4c11")
+        @Schema(description = "Payment gateway reference code", example = "pi_3MtwBwLkdIwHu7ix28a3tqPa")
         String gatewayReference) {}
