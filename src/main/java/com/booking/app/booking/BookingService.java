@@ -2,6 +2,7 @@ package com.booking.app.booking;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,4 +26,8 @@ public interface BookingService {
     BookingResponse confirm(UUID publicId);
 
     byte[] exportBookingsToExcel(Instant from, Instant to, BookingStatus status);
+
+    RevenueReportResponse getRevenueReport(Instant from, Instant to, BookingStatus status);
+
+    List<ResourceRevenueResponse> getTopResourcesByRevenue(BookingStatus status, int limit);
 }

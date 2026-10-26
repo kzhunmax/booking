@@ -4,10 +4,13 @@ import com.booking.app.booking.AvailableSlotsResponse;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
 import com.booking.app.booking.BookingStatus;
+import com.booking.app.booking.ResourceRevenueResponse;
+import com.booking.app.booking.RevenueReportResponse;
 import com.booking.app.common.security.SecurityUser;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -74,5 +77,17 @@ public class BookingController implements BookingApi {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"bookings-report.xlsx\"")
                 .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 .body(excelBytes);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public RevenueReportResponse getRevenueReport(Instant from, Instant to, BookingStatus status) {
+        return bookingService.getRevenueReport(from, to, status);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ResourceRevenueResponse> getTopResources(BookingStatus status, int limit) {
+        return bookingService.getTopResourcesByRevenue(status, limit);
     }
 }

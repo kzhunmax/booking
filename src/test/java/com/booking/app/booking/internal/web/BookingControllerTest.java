@@ -2,6 +2,7 @@ package com.booking.app.booking.internal.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -22,6 +23,8 @@ import com.booking.app.booking.BookingService;
 import com.booking.app.booking.BookingSlotAlreadyTakenException;
 import com.booking.app.booking.BookingStatus;
 import com.booking.app.booking.CancellationTooLateException;
+import com.booking.app.booking.ResourceRevenueResponse;
+import com.booking.app.booking.RevenueReportResponse;
 import com.booking.app.common.security.SecurityUser;
 import com.booking.app.config.TestSecurityConfig;
 import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
@@ -528,6 +531,74 @@ class BookingControllerTest {
         mockMvc.perform(get("/api/bookings/export")).andExpect(status().isUnauthorized());
 
         verify(bookingService, never()).exportBookingsToExcel(any(), any(), any());
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/bookings/revenue
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /api/bookings/revenue - returns 200 OK with report for admin")
+    void shouldReturnRevenueReportForAdmin() throws Exception {
+        UUID resourceId = UUID.randomUUID();
+        Instant from = Instant.parse("2026-11-01T00:00:00Z");
+        Instant to = Instant.parse("2026-11-30T23:59:59Z");
+        when(bookingService.getRevenueReport(from, to, BookingStatus.CONFIRMED))
+                .thenReturn(new RevenueReportResponse(
+                        from,
+                        to,
+                        BookingStatus.CONFIRMED,
+                        BigDecimal.valueOf(300),
+                        List.of(new ResourceRevenueResponse(resourceId, 3, BigDecimal.valueOf(300)))));
+
+        mockMvc.perform(get("/api/bookings/revenue")
+                        .param("from", from.toString())
+                        .param("to", to.toString())
+                        .with(user(mockSecurityUser(UUID.randomUUID(), "admin@test.com", "Admin", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalRevenue").value(300))
+                .andExpect(jsonPath("$.resources[0].resourceId").value(resourceId.toString()))
+                .andExpect(jsonPath("$.resources[0].totalBookings").value(3));
+    }
+
+    @Test
+    @DisplayName("GET /api/bookings/revenue - returns 403 Forbidden for customer role")
+    void shouldReturnForbiddenWhenCustomerRequestsRevenueReport() throws Exception {
+        mockMvc.perform(get("/api/bookings/revenue")
+                        .param("from", "2026-11-01T00:00:00Z")
+                        .param("to", "2026-11-30T23:59:59Z")
+                        .with(user(mockSecurityUser(CUSTOMER_PUBLIC_ID, CUSTOMER_EMAIL, CUSTOMER_NAME, false))))
+                .andExpect(status().isForbidden());
+
+        verify(bookingService, never()).getRevenueReport(any(), any(), any());
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/bookings/revenue/top
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /api/bookings/revenue/top - returns ranking with default parameters for admin")
+    void shouldReturnTopResourcesForAdmin() throws Exception {
+        UUID resourceId = UUID.randomUUID();
+        when(bookingService.getTopResourcesByRevenue(BookingStatus.CONFIRMED, 5))
+                .thenReturn(List.of(new ResourceRevenueResponse(resourceId, 2, BigDecimal.valueOf(200))));
+
+        mockMvc.perform(get("/api/bookings/revenue/top")
+                        .with(user(mockSecurityUser(UUID.randomUUID(), "admin@test.com", "Admin", true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].resourceId").value(resourceId.toString()))
+                .andExpect(jsonPath("$[0].totalRevenue").value(200));
+    }
+
+    @Test
+    @DisplayName("GET /api/bookings/revenue/top - returns 403 Forbidden for customer role")
+    void shouldReturnForbiddenWhenCustomerRequestsTopResources() throws Exception {
+        mockMvc.perform(get("/api/bookings/revenue/top")
+                        .with(user(mockSecurityUser(CUSTOMER_PUBLIC_ID, CUSTOMER_EMAIL, CUSTOMER_NAME, false))))
+                .andExpect(status().isForbidden());
+
+        verify(bookingService, never()).getTopResourcesByRevenue(any(), anyInt());
     }
 
     // -------------------------------------------------------------------------

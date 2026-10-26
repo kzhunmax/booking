@@ -8,6 +8,8 @@ import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingService;
 import com.booking.app.booking.BookingSlotAlreadyTakenException;
 import com.booking.app.booking.BookingStatus;
+import com.booking.app.booking.ResourceRevenueResponse;
+import com.booking.app.booking.RevenueReportResponse;
 import com.booking.app.booking.internal.domain.Booking;
 import com.booking.app.booking.internal.domain.BookingInterval;
 import com.booking.app.booking.internal.domain.BookingPricing;
@@ -41,6 +43,7 @@ public class DefaultBookingService implements BookingService {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultBookingService.class);
     private static final String OVERLAP_BOOKING_CONSTRAINT = "no_overlapping_bookings";
+    private static final int MAX_TOP_LIMIT = 100;
 
     private final BookingRepository bookingRepository;
     private final Clock clock;
@@ -190,5 +193,32 @@ public class DefaultBookingService implements BookingService {
         Specification<Booking> spec = BookingSpecifications.filter(null, null, status, from, to);
         List<Booking> bookings = bookingRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "startsAt"));
         return BookingExcelExporter.exportToExcel(bookings);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RevenueReportResponse getRevenueReport(Instant from, Instant to, BookingStatus status) {
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("'from' must not be after 'to'");
+        }
+        BigDecimal total = bookingRepository.calculateTotalRevenue(status, from, to);
+        List<ResourceRevenueResponse> perResource =
+                bookingRepository.summarizeRevenueByResource(status, from, to).stream()
+                        .map(row ->
+                                new ResourceRevenueResponse(row.resourceId(), row.totalBookings(), row.totalRevenue()))
+                        .toList();
+        return new RevenueReportResponse(from, to, status, total, perResource);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResourceRevenueResponse> getTopResourcesByRevenue(BookingStatus status, int limit) {
+        if (limit < 1 || limit > MAX_TOP_LIMIT) {
+            throw new IllegalArgumentException("limit must be between 1 and " + MAX_TOP_LIMIT);
+        }
+        return bookingRepository.findTopResourcesByRevenue(status.name(), limit).stream()
+                .map(row -> new ResourceRevenueResponse(
+                        UUID.fromString(row.getResourceId()), row.getTotalBookings(), row.getTotalRevenue()))
+                .toList();
     }
 }

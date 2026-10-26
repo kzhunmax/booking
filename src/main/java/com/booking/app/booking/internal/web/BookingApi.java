@@ -3,6 +3,8 @@ package com.booking.app.booking.internal.web;
 import com.booking.app.booking.AvailableSlotsResponse;
 import com.booking.app.booking.BookingResponse;
 import com.booking.app.booking.BookingStatus;
+import com.booking.app.booking.ResourceRevenueResponse;
+import com.booking.app.booking.RevenueReportResponse;
 import com.booking.app.common.security.SecurityUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -146,4 +149,48 @@ public interface BookingApi {
                     Instant to,
             @Parameter(description = "Optional filter by booking status") @RequestParam(required = false)
                     BookingStatus status);
+
+    @Operation(
+            summary = "Revenue report",
+            description = "Total revenue and revenue per resource for bookings with the given status, "
+                    + "whose start time falls in the range. Uses JPQL queries. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid parameters (e.g. from is after to)"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
+    @GetMapping("/revenue")
+    RevenueReportResponse getRevenueReport(
+            @Parameter(description = "Range start (ISO-8601 UTC)", example = "2026-11-01T00:00:00Z")
+                    @RequestParam
+                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    Instant from,
+            @Parameter(description = "Range end (ISO-8601 UTC)", example = "2026-11-30T23:59:59Z")
+                    @RequestParam
+                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    Instant to,
+            @Parameter(description = "Booking status to count (default CONFIRMED)")
+                    @RequestParam(defaultValue = "CONFIRMED")
+                    BookingStatus status);
+
+    @Operation(
+            summary = "Top resources by revenue",
+            description = "Resources with the highest revenue for bookings with the given status. "
+                    + "Uses a native SQL query. Requires ADMIN role.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Ranking returned successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid limit (must be 1-100)"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
+    @GetMapping("/revenue/top")
+    List<ResourceRevenueResponse> getTopResources(
+            @Parameter(description = "Booking status to count (default CONFIRMED)")
+                    @RequestParam(defaultValue = "CONFIRMED")
+                    BookingStatus status,
+            @Parameter(description = "Number of resources to return (1-100)") @RequestParam(defaultValue = "5")
+                    int limit);
 }

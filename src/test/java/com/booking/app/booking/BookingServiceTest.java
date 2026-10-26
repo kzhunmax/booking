@@ -15,6 +15,8 @@ import com.booking.app.booking.internal.domain.BookingInterval;
 import com.booking.app.booking.internal.domain.BookingPricing;
 import com.booking.app.booking.internal.domain.CustomerDetails;
 import com.booking.app.booking.internal.infrastructure.BookingRepository;
+import com.booking.app.booking.internal.infrastructure.BookingRevenueSummary;
+import com.booking.app.booking.internal.infrastructure.ResourceBookingSummary;
 import com.booking.app.resource.ResourceCurrentlyNotAvailableException;
 import com.booking.app.resource.ResourceNotFoundException;
 import com.booking.app.resource.ResourceResponse;
@@ -432,5 +434,55 @@ class BookingServiceTest {
                 new BookingInterval(startsAt, endsAt),
                 NOW,
                 new BookingPricing(BigDecimal.valueOf(100.00), "USD"));
+    }
+
+    @Test
+    @DisplayName("Should build revenue report from repository queries")
+    void shouldBuildRevenueReport() {
+        Instant from = NOW;
+        Instant to = NOW.plus(Duration.ofDays(30));
+        when(bookingRepository.calculateTotalRevenue(BookingStatus.CONFIRMED, from, to))
+                .thenReturn(BigDecimal.valueOf(300));
+        when(bookingRepository.summarizeRevenueByResource(BookingStatus.CONFIRMED, from, to))
+                .thenReturn(List.of(new BookingRevenueSummary(resourceId, 3L, BigDecimal.valueOf(300))));
+
+        RevenueReportResponse report = bookingService.getRevenueReport(from, to, BookingStatus.CONFIRMED);
+
+        assertThat(report.totalRevenue()).isEqualByComparingTo("300");
+        assertThat(report.resources()).hasSize(1);
+        assertThat(report.resources().getFirst().resourceId()).isEqualTo(resourceId);
+        assertThat(report.resources().getFirst().totalBookings()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("Should reject revenue report when from is after to")
+    void shouldRejectRevenueReportWithInvalidRange() {
+        assertThatThrownBy(() -> bookingService.getRevenueReport(NOW.plusSeconds(1), NOW, BookingStatus.CONFIRMED))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Should map native query rows to top resources ranking")
+    void shouldReturnTopResources() {
+        ResourceBookingSummary row = org.mockito.Mockito.mock(ResourceBookingSummary.class);
+        when(row.getResourceId()).thenReturn(resourceId.toString());
+        when(row.getTotalBookings()).thenReturn(2L);
+        when(row.getTotalRevenue()).thenReturn(BigDecimal.valueOf(200));
+        when(bookingRepository.findTopResourcesByRevenue("CONFIRMED", 5)).thenReturn(List.of(row));
+
+        List<ResourceRevenueResponse> top = bookingService.getTopResourcesByRevenue(BookingStatus.CONFIRMED, 5);
+
+        assertThat(top).hasSize(1);
+        assertThat(top.getFirst().resourceId()).isEqualTo(resourceId);
+        assertThat(top.getFirst().totalRevenue()).isEqualByComparingTo("200");
+    }
+
+    @Test
+    @DisplayName("Should reject top resources request with limit out of range")
+    void shouldRejectInvalidTopLimit() {
+        assertThatThrownBy(() -> bookingService.getTopResourcesByRevenue(BookingStatus.CONFIRMED, 0))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> bookingService.getTopResourcesByRevenue(BookingStatus.CONFIRMED, 101))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
