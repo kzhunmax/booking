@@ -8,6 +8,7 @@ Modular monolith REST API for resource booking and payment processing built with
 
 - **Language & Framework:** Java 25, Spring Boot 4
 - **Security:** Spring Security, JWT (JJWT)
+- **API Docs:** Springdoc OpenAPI (Swagger UI at `/swagger-ui/index.html`)
 - **Database & Migrations:** PostgreSQL, Flyway
 - **Tooling & Quality:** Spotless (Palantir Java Format), Checkstyle, Error Prone, JaCoCo
 - **Testing:** JUnit 5, AssertJ, Mockito, ArchUnit, Testcontainers
@@ -21,7 +22,7 @@ Modular monolith REST API for resource booking and payment processing built with
 - **`resource`** — Inventory of bookable resources (pricing, status, availability).
 - **`booking`** — Reservation lifecycle, schedule collision detection, available slots query.
 - **`payment`** — Payment handling with idempotency key support.
-- **`notification`** — Event notifications (emails dispatched via SMTP).
+- **`notification`** — Event notifications (emails dispatched via SMTP, plus WebSocket broadcast on `/topic/bookings`).
 
 ---
 
@@ -46,12 +47,14 @@ docker compose up -d
 - **Mailpit Web UI:** [http://localhost:8025](http://localhost:8025) (SMTP on `1025`)
 
 ### 4. Run the Application
-Start with the `local` Spring profile:
+Start with the `dev` Spring profile:
 ```bash
-./gradlew bootRun --args='--spring.profiles.active=local'
+./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
-*Default local admin:* `admin@admin.com` / `admin`
+Emails sent by the app (booking confirmed / cancelled) can be viewed in Mailpit. By default the app sends mail to `localhost:1025` (override with `MAIL_HOST` / `MAIL_PORT`).
+
+*Default dev admin:* `admin@admin.com` / `admin`
 
 ---
 
