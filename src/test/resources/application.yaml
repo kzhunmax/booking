@@ -9,6 +9,9 @@ spring:
       - classpath:db/migration/payments
       - classpath:db/migration/notifications
       - classpath:db/migration/auth
+  mail:
+    host: localhost
+    port: 1025
   jpa:
     hibernate:
       ddl-auto: none
